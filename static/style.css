@@ -1,0 +1,85 @@
+/* base */
+body {
+    background-color: #FFFFEE;
+    color: #800000;
+    font-size: 12pt;
+}
+tr, td, th { font-size: 12pt; }
+small { font-size: 10pt; }
+a { color: #0000EE; }
+a:visited { color: #0000EE; }
+a:hover { color: #DD0000; }
+
+/* layout */
+.nav-right { text-align: right; }
+.board-header { text-align: center; }
+.center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.clearfix { clear: both; }
+.footer { text-align: center; font-size: 10pt; }
+
+/* board title */
+.board-title {
+    color: #800000;
+    font-size: 20pt;
+    font-weight: bold;
+}
+.title-hr { width: 90%; }
+
+/* post form */
+.post-form-table {
+    border-spacing: 1px;
+    margin: 0 auto;
+}
+.post-form-table td {
+    padding: 1px;
+}
+.form-label { background-color: #eeaa88; }
+.form-caption { font-size: 10pt; }
+
+/* reply mode banner (thread view) */
+.reply-mode-banner { width: 100%; }
+.reply-mode-banner th {
+    background-color: #e04000;
+    color: #FFFFFF;
+}
+
+/* post elements */
+.post-subject {
+    color: #cc1105;
+    font-size: larger;
+    font-weight: bold;
+}
+.post-author {
+    color: #117743;
+    font-weight: bold;
+}
+.file-info { font-size: 10pt; }
+.thumbnail-notice { font-size: 10pt; }
+.post-image {
+    float: left;
+    margin-right: 20px;
+    border: none;
+}
+
+/* replies */
+.reply-table { border: none; }
+.reply-indent {
+    white-space: nowrap;
+    text-align: right;
+    vertical-align: top;
+}
+.reply-cell { background-color: #F0E0D6; }
+
+/* delete form and pagination */
+.delete-table { float: right; }
+.pagination {
+    float: left;
+    border: 1px solid;
+}
+.quote {
+    color: #789922;
+}

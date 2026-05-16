@@ -1,0 +1,36 @@
+{
+    "name": "rikachama",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {},
+        "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+    },
+    "runArgs": ["--privileged", "--memory=8g", "--memory-swap=8g"],
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+    "workspaceFolder": "/workspace",
+    "forwardPorts": [3200],
+    "mounts": [
+        "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+        "source=claude-code-history-${devcontainerId},target=/commandhistory,type=volume",
+        "source=${localWorkspaceFolder}/upload,target=/workspace/upload,type=bind,consistency=cached"
+    ],
+    "containerEnv": {
+        "DEVCONTAINER": "true",
+        "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"
+    },
+    "remoteUser": "vscode",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "golang.go",
+                "anthropic.claude-code"
+            ],
+            "settings": {
+                "go.toolsManagement.autoUpdate": false
+            }
+        }
+    },
+    "postCreateCommand": "go mod download && npm install -g @playwright/cli@latest && playwright-cli install-browser chrome-for-testing"
+}
