@@ -5,3 +5,4 @@ testdata.sql
 futaba.php
 upload/
 .devcontainer/devcontainer-lock.json
+testfiles/
