@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -113,6 +114,9 @@ func scanPost(s postScanner) (Post, error) {
 //go:embed templates/*.html static/*
 var files embed.FS
 
+//go:embed schema.sql
+var schema string
+
 var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"formatBody": formatBody,
 	"formatTime": formatTime,
@@ -134,6 +138,9 @@ var mimeSpecs = map[string]mimeSpec{
 var quoteLineRe = regexp.MustCompile(`(^|<br>)(&gt;[^<]*)`)
 
 func main() {
+	if runtime.GOOS != "linux" {
+		log.Fatalf("unsupported OS: %s (gvisor requires linux)", runtime.GOOS)
+	}
 	f, err := os.Open("config.json")
 	if err != nil {
 		log.Fatalf("failed to open config: %v", err)
@@ -163,7 +170,9 @@ func main() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 	fmt.Println("Successfully connected to SQLite database")
-
+	if _, err := db.Exec(schema); err != nil {
+		log.Fatalf("failed to initialize database: %v", err)
+	}
 	app := &App{db: db, cfg: cfg}
 
 	http.Handle("/static/", http.FileServerFS(files))
