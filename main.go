@@ -117,6 +117,9 @@ var files embed.FS
 //go:embed schema.sql
 var schema string
 
+//go:embed sanitizer/*
+var containerFiles embed.FS
+
 var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"formatBody": formatBody,
 	"formatTime": formatTime,
@@ -295,10 +298,17 @@ func render(w http.ResponseWriter, name string, data any) {
 }
 
 func buildImage(sanitizerImage string) error {
-	cmd := exec.Command("podman", "build", "-t", sanitizerImage, "sanitizer/")
+	dir, err := os.MkdirTemp("", "sanitizer-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+	if err := os.CopyFS(dir, containerFiles); err != nil {
+		return err
+	}
+	cmd := exec.Command("podman", "build", "-t", sanitizerImage, dir+"/sanitizer/")
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	return err
+	return cmd.Run()
 }
 
 // App methods

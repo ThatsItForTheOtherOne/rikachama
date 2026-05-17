@@ -17,4 +17,4 @@ CREATE TABLE IF NOT EXISTS posts (
     height INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE INDEX idx_reply_to ON posts(reply_to);
+CREATE INDEX IF NOT EXISTS idx_reply_to ON posts(reply_to);
