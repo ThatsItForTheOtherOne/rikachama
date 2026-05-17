@@ -548,6 +548,7 @@ func (c Config) MaxFileSize() int {
 func (c Config) podmanRun(args ...string) *exec.Cmd {
 	base := []string{
 		"run", "--rm", "-i",
+		"--runtime=runsc",
 		"--network=none",
 		"--pull=never",
 		"--cap-drop=all",

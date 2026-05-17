@@ -24,6 +24,13 @@ RUN curl -fsSL https://gvisor.dev/archive.key \
     && apt-get install -y runsc \
     && rm -rf /var/lib/apt/lists/*
 
-# Register runsc with Podman; systrap runs in userspace, no KVM needed
-RUN printf '[engine.runtimes]\nrunsc = ["/usr/local/bin/runsc", "--platform=systrap"]\n' \
+# Register runsc with Podman. Podman's [engine.runtimes] entries are lists of
+# alternative *paths* to the runtime binary, not [binary, ...args], so flags
+# have to go in a wrapper script. systrap runs in userspace (no KVM needed),
+# --ignore-cgroups skips runsc's cgroup setup which fails in rootless dev
+# containers (podman/crun still enforce cgroup limits at the host level).
+RUN printf '#!/bin/sh\nexec /usr/bin/runsc --platform=systrap --ignore-cgroups "$@"\n' \
+    > /usr/local/bin/runsc-wrapped \
+    && chmod +x /usr/local/bin/runsc-wrapped \
+    && printf '[engine.runtimes]\nrunsc = ["/usr/local/bin/runsc-wrapped"]\n' \
     >> /etc/containers/containers.conf
