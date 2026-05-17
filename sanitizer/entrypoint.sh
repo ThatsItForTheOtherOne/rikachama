@@ -5,14 +5,26 @@ case "$1" in
     image)
         convert - -strip "jpg:-"
         ;;
+    image-gif)
+        convert - -strip "gif:-"
+        ;;
     image-thumb)
         convert - -strip -resize 250x250 "jpg:-"
         ;;
     video)
-        ffmpeg -i pipe:0 -c:v libvpx-vp9 -c:a libopus -f webm pipe:1
+        # mp4 demuxer needs to seek for moov-at-end files (common on phones/Twitter),
+        # so buffer stdin to tmpfs and pass a seekable path to ffmpeg.
+        tmp=$(mktemp /tmp/in.XXXXXX)
+        trap 'rm -f "$tmp"' EXIT
+        cat > "$tmp"
+        ffmpeg -i "$tmp" -c:v libvpx-vp9 -c:a libopus -f webm pipe:1
         ;;
     video-thumb)
-        ffmpeg -i pipe:0 -ss 5 -vframes 1 -f image2 pipe:1
+        tmp=$(mktemp /tmp/in.XXXXXX)
+        trap 'rm -f "$tmp"' EXIT
+        cat > "$tmp"
+        ffmpeg -i "$tmp" -vf "thumbnail" -frames:v 1 -f image2 pipe:1 \
+            | convert - -strip -resize 250x250 "jpg:-"
         ;;
     pdf)
         gs -q -dNOPAUSE -dBATCH -dSAFER -sDEVICE=pdfwrite \

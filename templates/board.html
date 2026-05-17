@@ -96,18 +96,12 @@ Expected data:
                 {{if .FilePath}}
                 <span class="file-info">画像タイトル：<a href="/upload/{{.FilePath}}" target="_blank">{{.FilePath}}</a>-({{.FileSize}} B)</span>
                 <br>
-                {{if and .Width .Height}}
                 {{if .ThumbnailPath}}
                 <small class="thumbnail-notice">サムネイルを表示しています.クリックすると元のサイズを表示します.</small>
                 <br>
                 <a href="/upload/{{.FilePath}}" target="_blank">
                     <img class="post-image" src="/upload/{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
                 </a>
-                {{else}}
-                <a href="/upload/{{.FilePath}}" target="_blank">
-                    <img class="post-image" src="/upload/{{.FilePath}}" width="{{.Width}}" height="{{.Height}}" alt="{{.FileSize}} B">
-                </a>
-                {{end}}
                 {{else}}
                 <a href="/upload/{{.FilePath}}" target="_blank">
                     <img class="post-image" src="/upload/{{.FilePath}}" alt="{{.FileSize}} B">
@@ -128,18 +122,12 @@ Expected data:
                             {{if .FilePath}}
                             <span class="file-info">画像タイトル：<a href="/upload/{{.FilePath}}" target="_blank">{{.FilePath}}</a>-({{.FileSize}} B)</span>
                             <br>
-                            {{if and .Width .Height}}
                             {{if .ThumbnailPath}}
                             <small class="thumbnail-notice">サムネイルを表示しています.クリックすると元のサイズを表示します.</small>
                             <br>
                             <a href="/upload/{{.FilePath}}" target="_blank">
                                 <img class="post-image" src="/upload/{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
                             </a>
-                            {{else}}
-                            <a href="/upload/{{.FilePath}}" target="_blank">
-                                <img class="post-image" src="/upload/{{.FilePath}}" width="{{.Width}}" height="{{.Height}}" alt="{{.FileSize}} B">
-                            </a>
-                            {{end}}
                             {{else}}
                             <a href="/upload/{{.FilePath}}" target="_blank">
                                 <img class="post-image" src="/upload/{{.FilePath}}" alt="{{.FileSize}} B">

@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/sync/errgroup"
 	_ "modernc.org/sqlite"
 )
 
@@ -120,10 +121,12 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 }).ParseFS(files, "templates/*.html"))
 
 var mimeSpecs = map[string]mimeSpec{
-	"image/jpeg":                    {"image", "image-thumbnail", ".jpg"},
-	"image/png":                     {"image", "image-thumbnail", ".png"},
-	"image/gif":                     {"image", "image-thumbnail", ".gif"},
+	"image/jpeg":                    {"image", "image-thumb", ".jpg"},
+	"image/png":                     {"image", "image-thumb", ".png"},
+	"image/gif":                     {"image-gif", "image-thumb", ".gif"},
+	"image/webp":                    {"image", "image-thumb", ".webp"},
 	"video/mp4":                     {"video", "video-thumb", ".mp4"},
+	"video/webm":                    {"video", "video-thumb", ".webm"},
 	"application/pdf":               {"pdf", "pdf-thumb", ".pdf"},
 	"application/x-shockwave-flash": {"", "", ".swf"},
 }
@@ -289,31 +292,7 @@ func buildImage(sanitizerImage string) error {
 	return err
 }
 
-func formatTime(t time.Time) string {
-	weekdays := [...]string{"日", "月", "火", "水", "木", "金", "土"}
-	jst := t.UTC().Add(9 * time.Hour)
-	return fmt.Sprintf("%s(%s)%s",
-		jst.Format("06/01/02"),
-		weekdays[jst.Weekday()],
-		jst.Format("15:04"),
-	)
-}
-
-func formatBody(s string) template.HTML {
-	s = html.EscapeString(s)
-	s = newlinesToBreaks(s)
-	s = colorizeQuotes(s)
-	return template.HTML(s)
-}
-
-func newlinesToBreaks(s string) string {
-	return strings.ReplaceAll(s, "\n", "<br>")
-}
-
-func colorizeQuotes(s string) string {
-	return quoteLineRe.ReplaceAllString(s, `${1}<span class="quote">${2}</span>`)
-
-}
+// App methods
 
 func (a *App) newBoardPage(posts []Post, page, total int) BoardPage {
 	var prevURL, nextURL string
@@ -331,26 +310,6 @@ func (a *App) newBoardPage(posts []Post, page, total int) BoardPage {
 		PrevURL: prevURL,
 		NextURL: nextURL,
 	}
-}
-
-func pageURL(n int) string {
-	if n == 0 {
-		return "/"
-	}
-	return fmt.Sprintf("/%d", n)
-}
-
-func pageRange(total int) []int {
-	n := (total + postsPerPage - 1) / postsPerPage
-	s := make([]int, n)
-	for i := range s {
-		s[i] = i
-	}
-	return s
-}
-
-func maxPage(total int) int {
-	return (total - 1) / postsPerPage
 }
 
 func (a *App) getThreads(page int) ([]Post, int, error) {
@@ -463,7 +422,7 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 	var height, width, thumbnailWidth, thumbnailHeight, fileSize int64
 	file, _, err := r.FormFile("upfile")
 	if err == nil {
-		buf := make([]byte, 51)
+		buf := make([]byte, 512)
 		n, _ := file.Read(buf)
 		mimeType = detectMime(buf[:n])
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
@@ -539,60 +498,6 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 	return nil
 }
 
-func (c Config) MaxFileSize() int {
-	return c.MaxKB * 1024
-}
-
-func (c Config) podmanRun(args ...string) *exec.Cmd {
-	base := []string{
-		"run", "--rm", "-i",
-		"--network=none",
-		"--pull=never",
-		"--cap-drop=all",
-		"--security-opt=no-new-privileges",
-		"--read-only",
-		"--tmpfs", "/tmp:rw,noexec,nosuid,size=256m",
-		"--pids-limit=100",
-		"--memory=512m",
-		c.SanitizerImage,
-	}
-	return exec.Command("podman", append(base, args...)...)
-}
-
-func (c Config) process(r io.Reader, fileCmd, thumbCmd string) ([]byte, []byte, error) {
-	input, err := io.ReadAll(r)
-	if err != nil {
-		return nil, nil, err
-	}
-	var fileOut, thumbOut bytes.Buffer
-	fc := c.podmanRun(fileCmd)
-	fc.Stdin, fc.Stdout, fc.Stderr = bytes.NewReader(input), &fileOut, os.Stderr
-	if err := fc.Run(); err != nil {
-		return nil, nil, err
-	}
-	tc := c.podmanRun(thumbCmd)
-	tc.Stdin, tc.Stdout, tc.Stderr = bytes.NewReader(input), &thumbOut, os.Stderr
-	if err := tc.Run(); err != nil {
-		return nil, nil, err
-	}
-	return fileOut.Bytes(), thumbOut.Bytes(), nil
-}
-
-func isSWF(b []byte) bool {
-	if len(b) < 3 {
-		return false
-	}
-	sig := string(b[:3])
-	return sig == "FWS" || sig == "CWS" || sig == "ZWS"
-}
-
-func detectMime(buf []byte) string {
-	if isSWF(buf) {
-		return "application/x-shockwave-flash"
-	}
-	return http.DetectContentType(buf)
-}
-
 func (a *App) saveFile(file multipart.File, mimeType string) (string, string, error) {
 	ft, ok := mimeSpecs[mimeType]
 	if !ok {
@@ -632,4 +537,119 @@ func (a *App) saveFile(file multipart.File, mimeType string) (string, string, er
 	}
 
 	return filePath, thumbPath, nil
+}
+
+// Config methods
+
+func (c Config) MaxFileSize() int {
+	return c.MaxKB * 1024
+}
+
+func (c Config) podmanRun(args ...string) *exec.Cmd {
+	base := []string{
+		"run", "--rm", "-i",
+		"--network=none",
+		"--pull=never",
+		"--cap-drop=all",
+		"--security-opt=no-new-privileges",
+		"--read-only",
+		"--tmpfs", "/tmp:rw,noexec,nosuid,size=256m",
+		"--pids-limit=100",
+		"--memory=512m",
+		c.SanitizerImage,
+	}
+	return exec.Command("podman", append(base, args...)...)
+}
+
+func (c Config) process(r io.Reader, fileCmd, thumbCmd string) ([]byte, []byte, error) {
+	input, err := io.ReadAll(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	var fileOut, thumbOut bytes.Buffer
+	g := new(errgroup.Group)
+
+	g.Go(func() error {
+		fc := c.podmanRun(fileCmd)
+		fc.Stdin, fc.Stdout, fc.Stderr = bytes.NewReader(input), &fileOut, os.Stderr
+		return fc.Run()
+	})
+
+	g.Go(func() error {
+		tc := c.podmanRun(thumbCmd)
+		tc.Stdin, tc.Stdout, tc.Stderr = bytes.NewReader(input), &thumbOut, os.Stderr
+		return tc.Run()
+	})
+
+	if err := g.Wait(); err != nil {
+		return nil, nil, err
+	}
+
+	return fileOut.Bytes(), thumbOut.Bytes(), nil
+}
+
+// File detection helpers
+
+func isSWF(b []byte) bool {
+	if len(b) < 3 {
+		return false
+	}
+	sig := string(b[:3])
+	return sig == "FWS" || sig == "CWS" || sig == "ZWS"
+}
+
+func detectMime(buf []byte) string {
+	if isSWF(buf) {
+		return "application/x-shockwave-flash"
+	}
+	return http.DetectContentType(buf)
+}
+
+// Template helpers
+
+func formatTime(t time.Time) string {
+	weekdays := [...]string{"日", "月", "火", "水", "木", "金", "土"}
+	jst := t.UTC().Add(9 * time.Hour)
+	return fmt.Sprintf("%s(%s)%s",
+		jst.Format("06/01/02"),
+		weekdays[jst.Weekday()],
+		jst.Format("15:04"),
+	)
+}
+
+func formatBody(s string) template.HTML {
+	s = html.EscapeString(s)
+	s = newlinesToBreaks(s)
+	s = colorizeQuotes(s)
+	return template.HTML(s)
+}
+
+func newlinesToBreaks(s string) string {
+	return strings.ReplaceAll(s, "\n", "<br>")
+}
+
+func colorizeQuotes(s string) string {
+	return quoteLineRe.ReplaceAllString(s, `${1}<span class="quote">${2}</span>`)
+}
+
+// Page navigation helpers
+
+func pageURL(n int) string {
+	if n == 0 {
+		return "/"
+	}
+	return fmt.Sprintf("/%d", n)
+}
+
+func pageRange(total int) []int {
+	n := (total + postsPerPage - 1) / postsPerPage
+	s := make([]int, n)
+	for i := range s {
+		s[i] = i
+	}
+	return s
+}
+
+func maxPage(total int) int {
+	return (total - 1) / postsPerPage
 }
