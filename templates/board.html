@@ -93,21 +93,7 @@ Expected data:
                 {{formatTime .PostedAt}} No.{{.ID}} &nbsp;
                 [<a href="/thread/{{.ID}}">返信</a>]
                 <br>
-                {{if .FilePath}}
-                <span class="file-info">画像タイトル：<a href="/upload/{{.FilePath}}" target="_blank">{{.FilePath}}</a>-({{.FileSize}} B)</span>
-                <br>
-                {{if .ThumbnailPath}}
-                <small class="thumbnail-notice">サムネイルを表示しています.クリックすると元のサイズを表示します.</small>
-                <br>
-                <a href="/upload/{{.FilePath}}" target="_blank">
-                    <img class="post-image" src="/upload/{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
-                </a>
-                {{else}}
-                <a href="/upload/{{.FilePath}}" target="_blank">
-                    <img class="post-image" src="/upload/{{.FilePath}}" alt="{{.FileSize}} B">
-                </a>
-                {{end}}
-                {{end}}
+                {{template "media" .}}
                 <blockquote class="post-body">{{formatBody .Body}}</blockquote>
                 {{range .Replies}}
                 <table class="reply-table">
@@ -119,21 +105,7 @@ Expected data:
                             Name <span class="post-author">{{if .Email}}<a href="mailto:{{.Email}}">{{.Author}}</a>{{else}}{{.Author}}{{end}}</span>
                             {{formatTime .PostedAt}} No.{{.ID}} &nbsp;
                             <br>
-                            {{if .FilePath}}
-                            <span class="file-info">画像タイトル：<a href="/upload/{{.FilePath}}" target="_blank">{{.FilePath}}</a>-({{.FileSize}} B)</span>
-                            <br>
-                            {{if .ThumbnailPath}}
-                            <small class="thumbnail-notice">サムネイルを表示しています.クリックすると元のサイズを表示します.</small>
-                            <br>
-                            <a href="/upload/{{.FilePath}}" target="_blank">
-                                <img class="post-image" src="/upload/{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
-                            </a>
-                            {{else}}
-                            <a href="/upload/{{.FilePath}}" target="_blank">
-                                <img class="post-image" src="/upload/{{.FilePath}}" alt="{{.FileSize}} B">
-                            </a>
-                            {{end}}
-                            {{end}}
+                            {{template "media" .}}
                             <blockquote class="post-body">{{formatBody .Body}}</blockquote>
                         </td>
                     </tr>
@@ -184,5 +156,7 @@ Expected data:
             <p class="footer">
                 - <a href="http://php.s3.to" target="_top">GazouBBS</a> + <a href="http://www.2chan.net/" target="_top">futaba</a> + rikachama -
             </p>
+            <script src="/static/ruffle/ruffle.js"></script>
+            <script src="/static/enhance.js"></script>
         </body>
     </html>

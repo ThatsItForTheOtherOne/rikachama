@@ -64,6 +64,18 @@ a:hover { color: #DD0000; }
     margin-right: 20px;
     border: none;
 }
+.post-image.expanded {
+    float: none;
+    width: auto;
+    height: auto;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+.video-minimize {
+    display: block;
+    margin: 2px 0;
+    font-size: 10pt;
+}
 
 /* replies */
 .reply-table { border: none; }
