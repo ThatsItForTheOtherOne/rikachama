@@ -79,6 +79,7 @@ type App struct {
 type mimeSpec struct {
 	sanitizeCommand, thumbnailCommand string
 	ext                               string
+	defaultThumbnail                  string
 }
 
 const postColumns = `id, posted_at, author, email, subject, body,
@@ -128,14 +129,14 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 }).ParseFS(files, "templates/*.html"))
 
 var mimeSpecs = map[string]mimeSpec{
-	"image/jpeg":                    {"image", "image-thumb", ".jpg"},
-	"image/png":                     {"image", "image-thumb", ".png"},
-	"image/gif":                     {"image-gif", "image-thumb", ".gif"},
-	"image/webp":                    {"image", "image-thumb", ".webp"},
-	"video/mp4":                     {"video", "video-thumb", ".mp4"},
-	"video/webm":                    {"video", "video-thumb", ".webm"},
-	"application/pdf":               {"pdf", "pdf-thumb", ".pdf"},
-	"application/x-shockwave-flash": {"", "", ".swf"},
+	"image/jpeg":                    {"image", "image-thumb", ".jpg", ""},
+	"image/png":                     {"image", "image-thumb", ".png", ""},
+	"image/gif":                     {"image-gif", "image-thumb", ".gif", ""},
+	"image/webp":                    {"image", "image-thumb", ".webp", ""},
+	"video/mp4":                     {"video", "video-thumb", ".mp4", ""},
+	"video/webm":                    {"video", "video-thumb", ".webm", ""},
+	"application/pdf":               {"pdf", "pdf-thumb", ".pdf", ""},
+	"application/x-shockwave-flash": {"", "", ".swf", "static/swf_thumb.jpg"},
 }
 
 var quoteLineRe = regexp.MustCompile(`(^|<br>)(&gt;[^<]*)`)
@@ -447,9 +448,6 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
-		if mimeType == "application/x-shockwave-flash" {
-			return fmt.Errorf("SWF: %w", errors.ErrUnsupported)
-		}
 		if _, ok := mimeSpecs[mimeType]; !ok {
 			return &unknownTypeError{MimeType: mimeType}
 		}
@@ -540,6 +538,13 @@ func (a *App) saveFile(file multipart.File, mimeType string) (string, string, er
 		}
 		fileData = data
 	}
+	if thumbData == nil && ft.defaultThumbnail != "" {
+		b, err := files.ReadFile(ft.defaultThumbnail)
+		if err != nil {
+			return "", "", err
+		}
+		thumbData = b
+	}
 
 	base := fmt.Sprintf("%d", time.Now().UnixNano())
 	filePath := base + ft.ext
@@ -606,6 +611,21 @@ func (c Config) process(r io.Reader, fileCmd, thumbCmd string) ([]byte, []byte, 
 	}
 
 	return fileOut.Bytes(), thumbOut.Bytes(), nil
+}
+
+// Post methods
+
+func (p Post) Kind() string {
+	switch {
+	case strings.HasPrefix(p.MimeType, "video/"):
+		return "video"
+	case p.MimeType == "application/x-shockwave-flash":
+		return "flash"
+	case strings.HasPrefix(p.MimeType, "image/"):
+		return "image"
+	default:
+		return "document"
+	}
 }
 
 // File detection helpers
