@@ -12,18 +12,18 @@ case "$1" in
         convert - -strip -resize 250x250 "jpg:-"
         ;;
     video)
-        # mp4 demuxer needs to seek for moov-at-end files (common on phones/Twitter),
-        # so buffer stdin to tmpfs and pass a seekable path to ffmpeg.
         tmp=$(mktemp /tmp/in.XXXXXX)
-        trap 'rm -f "$tmp"' EXIT
+        out=$(mktemp /tmp/out.XXXXXX)
+        trap 'rm -f "$tmp" "$out"' EXIT
         cat > "$tmp"
-        ffmpeg -i "$tmp" -c:v libvpx-vp9 -c:a libopus -f webm pipe:1
+        ffmpeg -i "$tmp" -c:v libx264 -pix_fmt yuv420p -c:a aac -movflags +faststart -f mp4 -y "$out"
+        cat "$out"
         ;;
     video-thumb)
         tmp=$(mktemp /tmp/in.XXXXXX)
         trap 'rm -f "$tmp"' EXIT
         cat > "$tmp"
-        ffmpeg -i "$tmp" -vf "thumbnail" -frames:v 1 -f image2 pipe:1 \
+        ffmpeg -i "$tmp" -vf "thumbnail" -frames:v 1 -update 1 -f image2 pipe:1 \
             | convert - -strip -resize 250x250 "jpg:-"
         ;;
     pdf)
