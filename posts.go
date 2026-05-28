@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -38,6 +39,8 @@ type postScanner interface {
 type unknownTypeError struct {
 	MimeType string
 }
+
+var ErrEmptyPost = errors.New("post must contain a body or file")
 
 func (e *unknownTypeError) Error() string {
 	return fmt.Sprintf("unknown file type: %s", e.MimeType)
@@ -167,6 +170,9 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 	var filePath, thumbnailPath, mimeType string
 	var height, width, thumbnailWidth, thumbnailHeight, fileSize int64
 	file, _, err := r.FormFile("upfile")
+	if err != nil && len(body) == 0 {
+		return ErrEmptyPost
+	}
 	if err == nil {
 		buf := make([]byte, 512)
 		n, _ := file.Read(buf)

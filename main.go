@@ -129,6 +129,10 @@ func main() {
 				http.Error(w, "Unimplemented media type", http.StatusNotImplemented)
 				return
 			}
+			if errors.Is(err, ErrEmptyPost) {
+				http.Error(w, "Post body and file empty", http.StatusUnprocessableEntity)
+				return
+			}
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -174,6 +178,10 @@ func main() {
 			}
 			if errors.Is(err, errors.ErrUnsupported) {
 				http.Error(w, "Unimplemented media type", http.StatusNotImplemented)
+				return
+			}
+			if errors.Is(err, ErrEmptyPost) {
+				http.Error(w, "Post body and file empty", http.StatusUnprocessableEntity)
 				return
 			}
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
