@@ -50,13 +50,36 @@
                 if (!isPlainClick(e)) return;
                 e.preventDefault();
 
-                var img = link.querySelector("img");
                 var player = window.RufflePlayer.newest().createPlayer();
-                if (img) {
-                    player.style.width = img.width + "px";
-                    player.style.height = img.height + "px";
-                }
+                player.className = "post-image expanded";
+                // Ruffle needs an explicit size or the player renders at 0x0.
+                // Start with a sensible default for the load window, then snap to
+                // the SWF's real stage size once Ruffle parses the header.
+                player.style.width = "550px";
+                player.style.height = "400px";
+                player.addEventListener("loadedmetadata", function () {
+                    var m = player.metadata;
+                    if (m && m.width && m.height) {
+                        player.style.width = m.width + "px";
+                        player.style.height = m.height + "px";
+                    }
+                });
+
+                var min = document.createElement("a");
+                min.href = "#";
+                min.textContent = "最小化";
+                var control = document.createElement("div");
+                control.className = "video-minimize";
+                control.append("[", min, "]");
+
+                min.addEventListener("click", function (ev) {
+                    ev.preventDefault();
+                    player.replaceWith(link); // restore the original thumbnail link
+                    control.remove();
+                });
+
                 link.replaceWith(player);
+                player.insertAdjacentElement("beforebegin", control);
                 player.load({ url: link.dataset.swf, autoplay: "on" });
             });
         });
