@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"time"
 
@@ -44,6 +45,18 @@ type savedFile struct {
 
 //go:embed sanitizer/*
 var containerFiles embed.FS
+
+func acceptedFileTypes() string {
+	var acceptedTypes []string
+	for _, v := range mimeSpecs {
+		var extension = v.ext
+		extension, _ = strings.CutPrefix(extension, ".")
+		extension = strings.ToUpper(extension)
+		acceptedTypes = append(acceptedTypes, extension)
+	}
+	sort.Strings(acceptedTypes)
+	return strings.Join(acceptedTypes, ", ")
+}
 
 func buildImage(sanitizerImage string) error {
 	dir, err := os.MkdirTemp("", "sanitizer-*")

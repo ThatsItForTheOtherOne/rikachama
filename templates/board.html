@@ -39,7 +39,7 @@ Expected data:
     </head>
     <body>
         <p class="nav-right">
-            [<a href="{{.Home}}" target="_top">ホーム</a>]
+            [<a href="{{.Home}}" target="_top">{{ T "nav.home" }}</a>]
             {{/* [<a href="/?mode=admin">管理用</a>] -- admin mode not implemented */}}
         <p class="board-header">
             <span class="board-title">{{.Title}}</span>
@@ -49,7 +49,7 @@ Expected data:
                     <input type="hidden" name="MAX_FILE_SIZE" value="{{.MaxFileSize}}">
                     <table class="post-form-table">
                         <tr>
-                            <td class="form-label"><b>おなまえ</b></td>
+                            <td class="form-label"><b>{{ T "form.name" }}</b></td>
                             <td><input type="text" name="name" size="28"></td>
                         </tr>
                         <tr>
@@ -57,26 +57,26 @@ Expected data:
                             <td><input type="text" name="email" size="28"></td>
                         </tr>
                         <tr>
-                            <td class="form-label"><b>題　　名</b></td>
+                            <td class="form-label"><b>{{ T "form.subject" }}</b></td>
                             <td>
                                 <input type="text" name="sub" size="35">
-                                <input type="submit" value="送信する">
+                                <input type="submit" value="{{ T `form.submit` }}">
                             </td>
                         </tr>
                         <tr>
-                            <td class="form-label"><b>コメント</b></td>
+                            <td class="form-label"><b>{{ T "form.comment" }}</b></td>
                             <td><textarea name="com" cols="48" rows="4" wrap="soft"></textarea></td>
                         </tr>
                         <tr>
-                            <td class="form-label"><b>添付File</b></td>
+                            <td class="form-label"><b>{{ T "form.attach" }}</b></td>
                             <td><input type="file" name="upfile" size="35"></td>
                         </tr>
                         <tr>
                             <td colspan="2">
                                 <small class="form-caption">
-                                    <li>添付可能ファイル：GIF, JPG, PNG ブラウザによっては正常に添付できないことがあります。
-                                    <li>最大投稿データ量は {{.MaxKB}} KB までです。sage機能付き。
-                                    <li>画像は横 {{.MaxW}}ピクセル、縦 {{.MaxH}}ピクセルを超えると縮小表示されます。
+                                    <li>{{ T "form.attach_note" (acceptedFileTypes) }}
+                                    <li>{{ T "form.max_size_note" .MaxKB }}
+                                    <li>{{ T "form.image_size_note" .MaxW .MaxH }}
                                     {{.AddInfo}}
                                 </small>
                             </td>
@@ -91,7 +91,7 @@ Expected data:
                 <span class="post-subject">{{.Subject}}</span>
                 Name <span class="post-author">{{if .Email}}<a href="mailto:{{.Email}}">{{.Author}}</a>{{else}}{{.Author}}{{end}}</span>
                 {{formatTime .PostedAt}} No.{{.ID}} &nbsp;
-                [<a href="/thread/{{.ID}}">返信</a>]
+                [<a href="/thread/{{.ID}}">{{ T "post.reply" }}</a>]
                 <br>
                 {{template "media" .}}
                 <blockquote class="post-body">{{formatBody .Body}}</blockquote>
@@ -133,10 +133,10 @@ Expected data:
                 <tr>
                     {{if .PrevURL}}
                     <form action="{{.PrevURL}}" method="get">
-                        <td><input type="submit" value="前のページ"></td>
+                        <td><input type="submit" value="{{ T `pagination.prev` }}"></td>
                     </form>
                     {{else}}
-                    <td>最初のページ</td>
+                    <td>{{ T "pagination.first" }}</td>
                     {{end}}
                     <td>
                         {{range pageRange .Total}}
@@ -145,10 +145,10 @@ Expected data:
                     </td>
                     {{if .NextURL}}
                     <form action="{{.NextURL}}" method="get">
-                        <td><input type="submit" value="次のページ"></td>
+                        <td><input type="submit" value="{{ T `pagination.next` }}"></td>
                     </form>
                     {{else}}
-                    <td>最後のページ</td>
+                    <td>{{ T "pagination.last" }}</td>
                     {{end}}
                 </tr>
             </table>
@@ -156,6 +156,7 @@ Expected data:
             <p class="footer">
                 - <a href="http://php.s3.to" target="_top">GazouBBS</a> + <a href="http://www.2chan.net/" target="_top">futaba</a> + rikachama -
             </p>
+            <script>window.i18n = {{ jsMessages }};</script>
             <script src="/static/ruffle/ruffle.js"></script>
             <script src="/static/enhance.js"></script>
         </body>

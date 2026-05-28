@@ -25,6 +25,7 @@ type Config struct {
 	MaxW           int           `json:"max_w"`
 	MaxH           int           `json:"max_h"`
 	SanitizerImage string        `json:"sanitizer_image"`
+	Lang           string        `json:"lang"`
 }
 
 type App struct {
@@ -55,6 +56,11 @@ func main() {
 	if u.Scheme != "http" && u.Scheme != "https" {
 		log.Fatalf("home URL scheme must be http or https, got %q", u.Scheme)
 	}
+	m, err := loadMessages(cfg.Lang)
+	if err != nil {
+		log.Fatalf("i18n: %v", err)
+	}
+	messages = m
 	if err := buildImage(cfg.SanitizerImage); err != nil {
 		log.Fatalf("failed to build sanitizer image: %v", err)
 	}

@@ -11,6 +11,21 @@
         return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey;
     }
 
+    // The media template renders: <small class="thumbnail-notice">...</small><br><a>...</a>.
+    // When the link "activates" (expands / plays), the preceding notice + <br> should hide.
+    function noticeBefore(link) {
+        var br = link.previousElementSibling;
+        if (!br || br.tagName !== "BR") return null;
+        var notice = br.previousElementSibling;
+        if (!notice || !notice.classList || !notice.classList.contains("thumbnail-notice")) return null;
+        return { notice: notice, br: br };
+    }
+    function setNoticeVisible(n, visible) {
+        if (!n) return;
+        n.notice.style.display = visible ? "" : "none";
+        n.br.style.display = visible ? "" : "none";
+    }
+
     // a.expandable: toggle between the thumbnail and the full image inline.
     function enhanceImages() {
         document.querySelectorAll("a.expandable").forEach(function (link) {
@@ -21,6 +36,7 @@
             var thumbH = img.getAttribute("height");
             var fullSrc = link.dataset.full;
             var expanded = false;
+            var n = noticeBefore(link);
 
             link.addEventListener("click", function (e) {
                 if (!isPlainClick(e)) return;
@@ -31,11 +47,13 @@
                     img.removeAttribute("width");
                     img.removeAttribute("height");
                     img.classList.add("expanded");
+                    setNoticeVisible(n, false);
                 } else {
                     img.src = thumbSrc;
                     if (thumbW) img.setAttribute("width", thumbW);
                     if (thumbH) img.setAttribute("height", thumbH);
                     img.classList.remove("expanded");
+                    setNoticeVisible(n, true);
                 }
             });
         });
@@ -44,6 +62,7 @@
     // a.swf-embed: replace the thumbnail with an inline Ruffle player on click.
     function enhanceFlash() {
         document.querySelectorAll("a.swf-embed").forEach(function (link) {
+            var n = noticeBefore(link);
             link.addEventListener("click", function (e) {
                 // Ruffle missing -> let the browser follow href and download the .swf.
                 if (!window.RufflePlayer) return;
@@ -67,7 +86,7 @@
 
                 var min = document.createElement("a");
                 min.href = "#";
-                min.textContent = "最小化";
+                min.textContent = (window.i18n && window.i18n["post.minimize"]) || "Minimize";
                 var control = document.createElement("div");
                 control.className = "video-minimize";
                 control.append("[", min, "]");
@@ -76,10 +95,12 @@
                     ev.preventDefault();
                     player.replaceWith(link); // restore the original thumbnail link
                     control.remove();
+                    setNoticeVisible(n, true);
                 });
 
                 link.replaceWith(player);
                 player.insertAdjacentElement("beforebegin", control);
+                setNoticeVisible(n, false);
                 player.load({ url: link.dataset.swf, autoplay: "on" });
             });
         });
@@ -91,6 +112,7 @@
     // shrunk video (notably Safari).
     function enhanceVideos() {
         document.querySelectorAll("a.video-embed").forEach(function (link) {
+            var n = noticeBefore(link);
             link.addEventListener("click", function (e) {
                 if (!isPlainClick(e)) return;
                 e.preventDefault();
@@ -103,7 +125,7 @@
 
                 var min = document.createElement("a");
                 min.href = "#";
-                min.textContent = "最小化";
+                min.textContent = (window.i18n && window.i18n["post.minimize"]) || "Minimize";
                 var control = document.createElement("div");
                 control.className = "video-minimize";
                 control.append("[", min, "]");
@@ -112,10 +134,12 @@
                     ev.preventDefault();
                     video.replaceWith(link); // restore the original thumbnail link
                     control.remove();
+                    setNoticeVisible(n, true);
                 });
 
                 link.replaceWith(video);
                 video.insertAdjacentElement("beforebegin", control);
+                setNoticeVisible(n, false);
             });
         });
     }

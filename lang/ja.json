@@ -1,0 +1,30 @@
+{
+    "nav.home": "ホーム",
+    "nav.back_to_board": "掲示板に戻る",
+
+    "form.name": "おなまえ",
+    "form.email": "E-mail",
+    "form.subject": "題　　名",
+    "form.submit": "送信する",
+    "form.comment": "コメント",
+    "form.attach": "添付File",
+    "form.attach_note": "添付可能ファイル：%s ブラウザによっては正常に添付できないことがあります。",
+    "form.max_size_note": "最大投稿データ量は %d KB までです。sage機能付き。",
+    "form.image_size_note": "画像は横 %d ピクセル、縦 %d ピクセルを超えると縮小表示されます。",
+
+    "post.reply": "返信",
+    "post.anonymous": "名無しさん",
+    "post.image_title": "画像タイトル：",
+    "post.click_to_play": "クリックで再生します.",
+    "post.thumbnail_notice": "サムネイルを表示しています.クリックすると元のサイズを表示します.",
+    "post.minimize": "最小化",
+
+    "thread.reply_mode": "レス送信モード",
+
+    "pagination.prev": "前のページ",
+    "pagination.next": "次のページ",
+    "pagination.first": "最初のページ",
+    "pagination.last": "最後のページ",
+
+    "date.weekdays": "日,月,火,水,木,金,土"
+}

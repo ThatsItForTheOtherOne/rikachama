@@ -159,7 +159,7 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 	}
 	author := r.FormValue("name")
 	if author == "" {
-		author = "名無しさん"
+		author = T("post.anonymous")
 	}
 	email := r.FormValue("email")
 	subject := r.FormValue("sub")

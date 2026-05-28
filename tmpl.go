@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -31,10 +32,13 @@ type ThreadPage struct {
 var files embed.FS
 
 var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
-	"formatBody": formatBody,
-	"formatTime": formatTime,
-	"pageURL":    pageURL,
-	"pageRange":  pageRange,
+	"T":                 T,
+	"jsMessages":        jsMessages,
+	"acceptedFileTypes": acceptedFileTypes,
+	"formatBody":        formatBody,
+	"formatTime":        formatTime,
+	"pageURL":           pageURL,
+	"pageRange":         pageRange,
 }).ParseFS(files, "templates/*.html"))
 
 var quoteLineRe = regexp.MustCompile(`(^|<br>)(&gt;[^<]*)`)
@@ -72,7 +76,7 @@ func (a *App) newBoardPage(posts []Post, page, total int) BoardPage {
 // Template helpers
 
 func formatTime(t time.Time) string {
-	weekdays := [...]string{"日", "月", "火", "水", "木", "金", "土"}
+	weekdays := strings.Split(T("date.weekdays"), ",")
 	jst := t.UTC().Add(9 * time.Hour)
 	return fmt.Sprintf("%s(%s)%s",
 		jst.Format("06/01/02"),
@@ -114,4 +118,15 @@ func pageRange(total int) []int {
 
 func maxPage(total int) int {
 	return (total - 1) / postsPerPage
+}
+
+func jsMessages() (template.JS, error) {
+	clientMessages := map[string]string{
+		"post.minimize": T("post.minimize"),
+	}
+	jsonedMessages, err := json.Marshal(clientMessages)
+	if err != nil {
+		return "", err
+	}
+	return template.JS(jsonedMessages), nil
 }

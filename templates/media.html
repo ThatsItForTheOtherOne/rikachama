@@ -1,21 +1,21 @@
 {{define "media"}}
 {{- if .FilePath}}
-<span class="file-info">画像タイトル：<a href="/upload/{{.FilePath}}" target="_blank">{{.FilePath}}</a>-({{.FileSize}} B)</span>
+<span class="file-info">{{ T "post.image_title" }}<a href="/upload/{{.FilePath}}" target="_blank">{{.FilePath}}</a>-({{.FileSize}} B)</span>
 <br>
 {{- if eq .Kind "video"}}
-<small class="thumbnail-notice">クリックで再生します.</small>
+<small class="thumbnail-notice">{{ T "post.click_to_play" }}</small>
 <br>
 <a href="/upload/{{.FilePath}}" target="_blank" class="video-embed" data-video="/upload/{{.FilePath}}">
     <img class="post-image" src="{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
 </a>
 {{- else if eq .Kind "flash"}}
-<small class="thumbnail-notice">クリックで再生します.</small>
+<small class="thumbnail-notice">{{ T "post.click_to_play" }}</small>
 <br>
 <a href="/upload/{{.FilePath}}" target="_blank" class="swf-embed" data-swf="/upload/{{.FilePath}}">
     <img class="post-image" src="{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
 </a>
 {{- else if eq .Kind "image"}}
-<small class="thumbnail-notice">サムネイルを表示しています.クリックすると元のサイズを表示します.</small>
+<small class="thumbnail-notice">{{ T "post.thumbnail_notice" }}</small>
 <br>
 <a href="/upload/{{.FilePath}}" target="_blank" class="expandable" data-full="/upload/{{.FilePath}}">
     <img class="post-image" src="{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
