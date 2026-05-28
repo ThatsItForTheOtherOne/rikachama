@@ -12,6 +12,7 @@
     "form.max_size_note": "Maximum post size is %d KB. sage supported.",
     "form.image_size_note": "Images larger than %d×%d pixels will be thumbnailed.",
 
+    "post.name_label": "Name",
     "post.reply": "Reply",
     "post.anonymous": "Anonymous",
     "post.image_title": "Image:",

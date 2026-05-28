@@ -12,6 +12,7 @@
     "form.max_size_note": "最大投稿データ量は %d KB までです。sage機能付き。",
     "form.image_size_note": "画像は横 %d ピクセル、縦 %d ピクセルを超えると縮小表示されます。",
 
+    "post.name_label": "Name",
     "post.reply": "返信",
     "post.anonymous": "名無しさん",
     "post.image_title": "画像タイトル：",
