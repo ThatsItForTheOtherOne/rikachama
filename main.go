@@ -82,6 +82,16 @@ type mimeSpec struct {
 	defaultThumbnail                  string
 }
 
+type savedFile struct {
+	Path        string
+	ThumbPath   string
+	Width       int
+	Height      int
+	ThumbWidth  int
+	ThumbHeight int
+	FileSize    int64
+}
+
 const postColumns = `id, posted_at, author, email, subject, body,
     file_path, thumbnail_path, thumbnail_width, thumbnail_height, file_size, mime_type, width, height`
 
@@ -136,7 +146,7 @@ var mimeSpecs = map[string]mimeSpec{
 	"video/mp4":                     {"video", "video-thumb", ".mp4", ""},
 	"video/webm":                    {"video", "video-thumb", ".webm", ""},
 	"application/pdf":               {"pdf", "pdf-thumb", ".pdf", ""},
-	"application/x-shockwave-flash": {"", "", ".swf", "static/swf_thumb.jpg"},
+	"application/x-shockwave-flash": {"", "", ".swf", "static/swf_thumb.png"},
 }
 
 var quoteLineRe = regexp.MustCompile(`(^|<br>)(&gt;[^<]*)`)
@@ -451,43 +461,17 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 		if _, ok := mimeSpecs[mimeType]; !ok {
 			return &unknownTypeError{MimeType: mimeType}
 		}
-
-		filePath, thumbnailPath, err = a.saveFile(file, mimeType)
+		f, err := a.saveFile(file, mimeType)
 		if err != nil {
 			return err
 		}
-		info, err := os.Stat("upload/" + filePath)
-		if err != nil {
-			return err
-		}
-		fileSize = info.Size()
-		if thumbnailPath != "" {
-			tf, err := os.Open("upload/" + thumbnailPath)
-			if err != nil {
-				return err
-			}
-			imgCfg, _, err := image.DecodeConfig(tf)
-			tf.Close()
-			if err != nil {
-				return err
-			}
-			thumbnailWidth = int64(imgCfg.Width)
-			thumbnailHeight = int64(imgCfg.Height)
-		}
-		if filePath != "" && strings.HasPrefix(mimeType, "image/") {
-			f, err := os.Open("upload/" + filePath)
-			if err != nil {
-				return err
-			}
-			imgCfg, _, err := image.DecodeConfig(f)
-			f.Close()
-			if err != nil {
-				return err
-			}
-			width = int64(imgCfg.Width)
-			height = int64(imgCfg.Height)
-		}
-
+		filePath = f.Path
+		thumbnailPath = f.ThumbPath
+		height = int64(f.Height)
+		width = int64(f.Width)
+		thumbnailHeight = int64(f.ThumbHeight)
+		thumbnailWidth = int64(f.ThumbWidth)
+		fileSize = f.FileSize
 	}
 	now := time.Now().Unix()
 	_, err = a.db.Exec(`
@@ -515,10 +499,10 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 	return nil
 }
 
-func (a *App) saveFile(file multipart.File, mimeType string) (string, string, error) {
+func (a *App) saveFile(file multipart.File, mimeType string) (savedFile, error) {
 	ft, ok := mimeSpecs[mimeType]
 	if !ok {
-		return "", "", fmt.Errorf("unsupported file type: %s", mimeType)
+		return savedFile{}, fmt.Errorf("unsupported file type: %s", mimeType)
 	}
 
 	var fileData, thumbData []byte
@@ -526,41 +510,62 @@ func (a *App) saveFile(file multipart.File, mimeType string) (string, string, er
 		var err error
 		fileData, thumbData, err = a.cfg.process(file, ft.sanitizeCommand, ft.thumbnailCommand)
 		if err != nil {
-			return "", "", fmt.Errorf("process %s: %w", mimeType, err)
+			return savedFile{}, fmt.Errorf("process %s: %w", mimeType, err)
 		}
 	} else {
 		data, err := io.ReadAll(file)
 		if err != nil {
-			return "", "", fmt.Errorf("read upload: %w", err)
+			return savedFile{}, fmt.Errorf("read upload: %w", err)
 		}
 		if mimeType == "application/x-shockwave-flash" && !isSWF(data) {
-			return "", "", fmt.Errorf("invalid SWF file")
+			return savedFile{}, fmt.Errorf("invalid SWF file")
 		}
 		fileData = data
-	}
-	if thumbData == nil && ft.defaultThumbnail != "" {
-		b, err := files.ReadFile(ft.defaultThumbnail)
-		if err != nil {
-			return "", "", err
-		}
-		thumbData = b
 	}
 
 	base := fmt.Sprintf("%d", time.Now().UnixNano())
 	filePath := base + ft.ext
 	if err := os.WriteFile("upload/"+filePath, fileData, 0644); err != nil {
-		return "", "", fmt.Errorf("write file: %w", err)
+		return savedFile{}, fmt.Errorf("write file: %w", err)
 	}
 
 	var thumbPath string
 	if thumbData != nil {
-		thumbPath = base + "_thumb.jpg"
-		if err := os.WriteFile("upload/"+thumbPath, thumbData, 0644); err != nil {
-			return "", "", fmt.Errorf("write thumb: %w", err)
+		name := base + "_thumb.jpg"
+		if err := os.WriteFile("upload/"+name, thumbData, 0644); err != nil {
+			return savedFile{}, fmt.Errorf("write thumb: %w", err)
 		}
+		thumbPath = "/upload/" + name
+	} else if ft.defaultThumbnail != "" {
+		thumbPath = "/" + ft.defaultThumbnail
 	}
-
-	return filePath, thumbPath, nil
+	var width, height int
+	if strings.HasPrefix(mimeType, "image/") {
+		cfg, _, err := image.DecodeConfig(bytes.NewReader(fileData))
+		if err != nil {
+			return savedFile{}, err
+		}
+		width, height = cfg.Width, cfg.Height
+	}
+	var thumbW, thumbH int
+	if thumbData != nil {
+		cfg, _, err := image.DecodeConfig(bytes.NewReader(thumbData))
+		if err != nil {
+			return savedFile{}, err
+		}
+		thumbW, thumbH = cfg.Width, cfg.Height
+	} else if thumbPath != "" {
+		b, err := files.ReadFile(ft.defaultThumbnail)
+		if err != nil {
+			return savedFile{}, err
+		}
+		cfg, _, err := image.DecodeConfig(bytes.NewReader(b))
+		if err != nil {
+			return savedFile{}, err
+		}
+		thumbW, thumbH = cfg.Width, cfg.Height
+	}
+	return savedFile{Path: filePath, ThumbPath: thumbPath, Width: width, Height: height, ThumbWidth: thumbW, ThumbHeight: thumbH, FileSize: int64(len(fileData))}, nil
 }
 
 // Config methods

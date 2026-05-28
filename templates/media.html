@@ -6,23 +6,23 @@
 <small class="thumbnail-notice">クリックで再生します.</small>
 <br>
 <a href="/upload/{{.FilePath}}" target="_blank" class="video-embed" data-video="/upload/{{.FilePath}}">
-    <img class="post-image" src="/upload/{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
+    <img class="post-image" src="{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
 </a>
 {{- else if eq .Kind "flash"}}
 <small class="thumbnail-notice">クリックで再生します.</small>
 <br>
 <a href="/upload/{{.FilePath}}" target="_blank" class="swf-embed" data-swf="/upload/{{.FilePath}}">
-    <img class="post-image" src="/upload/{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
+    <img class="post-image" src="{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
 </a>
 {{- else if eq .Kind "image"}}
 <small class="thumbnail-notice">サムネイルを表示しています.クリックすると元のサイズを表示します.</small>
 <br>
 <a href="/upload/{{.FilePath}}" target="_blank" class="expandable" data-full="/upload/{{.FilePath}}">
-    <img class="post-image" src="/upload/{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
+    <img class="post-image" src="{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
 </a>
 {{- else}}
 <a href="/upload/{{.FilePath}}" target="_blank">
-    <img class="post-image" src="/upload/{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
+    <img class="post-image" src="{{.ThumbnailPath}}" width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}" alt="{{.FileSize}} B">
 </a>
 {{- end}}
 {{- end}}
