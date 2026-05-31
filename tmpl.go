@@ -28,6 +28,17 @@ type ThreadPage struct {
 	Thread Post
 }
 
+type AdminPage struct {
+	Config
+	Posts          []Post
+	TotalFileBytes int64
+}
+
+type AdminLoginPage struct {
+	Config
+	Error string
+}
+
 //go:embed templates/*.html static/*
 var files embed.FS
 

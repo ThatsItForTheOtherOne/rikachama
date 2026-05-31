@@ -1,5 +1,9 @@
 {{define "media"}}
-{{- if .FilePath}}
+{{- if eq .ThumbnailPath "/static/deleted_file.png"}}
+<small class="thumbnail-notice">{{ T "post.file_deleted" }}</small>
+<br>
+<img class="post-image" src="/static/deleted_file.png" alt="">
+{{- else if .FilePath}}
 <span class="file-info">{{ T "post.image_title" }}<a href="/upload/{{.FilePath}}" target="_blank">{{.FilePath}}</a>-({{.FileSize}} B)</span>
 <br>
 {{- if eq .Kind "video"}}

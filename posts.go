@@ -8,6 +8,7 @@ import (
 	_ "image/png"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -63,14 +64,14 @@ func scanPost(s postScanner) (Post, error) {
 
 func (a *App) getThreads(page int) ([]Post, int, error) {
 	var total int
-	err := a.db.QueryRow(`SELECT COUNT(*) FROM posts WHERE reply_to = 0`).Scan(&total)
+	err := a.db.QueryRow(`SELECT COUNT(*) FROM posts WHERE reply_to IS NULL`).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
 	rows, err := a.db.Query(`
 	SELECT `+postColumns+`
 	FROM posts
-	WHERE reply_to = 0
+	WHERE reply_to IS NULL
 	ORDER BY bumped_at DESC
 	LIMIT ?
 	OFFSET ?
@@ -156,6 +157,10 @@ func (a *App) getThread(threadID int) (Post, error) {
 }
 
 func (a *App) handlePost(r *http.Request, threadID int) error {
+	var reply_to any = threadID
+	if threadID == 0 {
+		reply_to = nil
+	}
 	err := r.ParseMultipartForm(int64(a.cfg.MaxFileSize()))
 	if err != nil {
 		return err
@@ -203,7 +208,7 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 		 width, height)
 	VALUES
     	(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		threadID, now, now,
+		reply_to, now, now,
 		author, email, subject, body,
 		filePath, thumbnailPath,
 		thumbnailWidth, thumbnailHeight, fileSize, mimeType,
@@ -246,4 +251,103 @@ func detectMime(buf []byte) string {
 		return "application/x-shockwave-flash"
 	}
 	return http.DetectContentType(buf)
+}
+
+func (a *App) getAllPosts() ([]Post, int64, error) {
+	var total int64
+	var posts []Post
+	err := a.db.QueryRow(`SELECT COALESCE(SUM(file_size), 0) FROM posts`).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+	rows, err := a.db.Query(`
+	SELECT ` + postColumns + `
+	FROM posts
+	ORDER BY id DESC`)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		p, err := scanPost(rows)
+		if err != nil {
+			rows.Close()
+			return nil, 0, err
+		}
+		posts = append(posts, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	return posts, total, nil
+}
+
+func (a *App) deletePost(id int, imgOnly bool) error {
+	var n int
+	err := a.db.QueryRow("SELECT reply_to IS NULL FROM posts WHERE id = ?", id).Scan(&n)
+	if err != nil {
+		return err
+	}
+	isThread := n != 0
+	switch {
+	case imgOnly:
+		return a.deleteFile(id)
+	case isThread:
+		return a.deleteThread(id)
+	default:
+		return a.deleteSinglePost(id)
+	}
+}
+
+func (a *App) deleteThread(threadID int) error {
+	rows, err := a.db.Query(`SELECT file_path, thumbnail_path FROM posts WHERE id = ? OR reply_to = ?`, threadID, threadID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var thumbPath string
+		var filePath string
+		err := rows.Scan(&filePath, &thumbPath)
+		if err != nil {
+			return err
+		}
+		unlinkPostFiles(filePath, thumbPath)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	_, err = a.db.Exec(`DELETE FROM posts WHERE id = ? OR reply_to = ?`, threadID, threadID)
+	return err
+}
+
+func (a *App) deleteSinglePost(postID int) error {
+	var filePath, thumbPath string
+	err := a.db.QueryRow(`SELECT file_path, thumbnail_path FROM posts WHERE id = ?`, postID).Scan(&filePath, &thumbPath)
+	if err != nil {
+		return err
+	}
+	unlinkPostFiles(filePath, thumbPath)
+	_, err = a.db.Exec(`DELETE FROM posts WHERE id = ?`, postID)
+	return err
+}
+
+func (a *App) deleteFile(postID int) error {
+	var filePath, thumbPath string
+	err := a.db.QueryRow(`SELECT file_path, thumbnail_path FROM posts WHERE id = ?`, postID).Scan(&filePath, &thumbPath)
+	if err != nil {
+		return err
+	}
+	unlinkPostFiles(filePath, thumbPath)
+	_, err = a.db.Exec(`UPDATE posts SET file_path = '', thumbnail_path = '/static/deleted_file.png' WHERE id = ?`, postID)
+	return err
+}
+
+func unlinkPostFiles(filePath, thumbPath string) {
+	if filePath != "" {
+		_ = os.Remove("upload/" + filePath)
+	}
+	if strings.HasPrefix(thumbPath, "/upload/") {
+		_ = os.Remove(strings.TrimPrefix(thumbPath, "/"))
+	}
 }

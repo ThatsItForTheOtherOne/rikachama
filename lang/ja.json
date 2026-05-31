@@ -19,6 +19,7 @@
     "post.click_to_play": "クリックで再生します.",
     "post.thumbnail_notice": "サムネイルを表示しています.クリックすると元のサイズを表示します.",
     "post.minimize": "最小化",
+    "post.file_deleted": "ファイルは管理者により削除されました。",
 
     "thread.reply_mode": "レス送信モード",
 
@@ -27,5 +28,25 @@
     "pagination.first": "最初のページ",
     "pagination.last": "最後のページ",
 
-    "date.weekdays": "日,月,火,水,木,金,土"
+    "date.weekdays": "日,月,火,水,木,金,土",
+
+    "admin.mode": "管理モード",
+    "admin.mode_link": "管理用",
+    "admin.username": "ユーザー名",
+    "admin.password": "パスワード",
+    "admin.login_button": "認証",
+    "admin.logout": "ログアウト",
+    "admin.delete_instructions": "削除したい記事のチェックボックスにチェックを入れ、削除ボタンを押して下さい。",
+    "admin.delete_button": "削除する",
+    "admin.reset_button": "リセット",
+    "admin.only_file": "画像だけ消す",
+    "admin.col.delete": "削除",
+    "admin.col.no": "記事No",
+    "admin.col.posted": "投稿日",
+    "admin.col.subject": "題名",
+    "admin.col.author": "投稿者",
+    "admin.col.comment": "コメント",
+    "admin.col.file": "添付(Bytes)",
+    "admin.col.type": "種別",
+    "admin.total_data": "画像データ合計"
 }

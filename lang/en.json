@@ -19,6 +19,7 @@
     "post.click_to_play": "Click to play.",
     "post.thumbnail_notice": "Showing thumbnail. Click for the original.",
     "post.minimize": "Minimize",
+    "post.file_deleted": "File deleted by moderator.",
 
     "thread.reply_mode": "Reply mode",
 
@@ -27,5 +28,25 @@
     "pagination.first": "First page",
     "pagination.last": "Last page",
 
-    "date.weekdays": "Sun,Mon,Tue,Wed,Thu,Fri,Sat"
+    "date.weekdays": "Sun,Mon,Tue,Wed,Thu,Fri,Sat",
+
+    "admin.mode": "Admin mode",
+    "admin.mode_link": "Admin",
+    "admin.username": "Username",
+    "admin.password": "Password",
+    "admin.login_button": "Log in",
+    "admin.logout": "Log out",
+    "admin.delete_instructions": "Check the boxes for posts to delete, then press Delete.",
+    "admin.delete_button": "Delete",
+    "admin.reset_button": "Reset",
+    "admin.only_file": "Delete attached file only",
+    "admin.col.delete": "Delete",
+    "admin.col.no": "No",
+    "admin.col.posted": "Posted",
+    "admin.col.subject": "Subject",
+    "admin.col.author": "Author",
+    "admin.col.comment": "Comment",
+    "admin.col.file": "File",
+    "admin.col.type": "Type",
+    "admin.total_data": "Total attached file data"
 }

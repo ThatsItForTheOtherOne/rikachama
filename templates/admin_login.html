@@ -1,0 +1,46 @@
+<html>
+    <head>
+        <meta http-equiv="Content-type" content="text/html; charset=UTF-8">
+        <link rel="stylesheet" href="/static/style.css">
+        <title>{{.Title}} - admin</title>
+    </head>
+    <body>
+        <p class="nav-right">
+            [<a href="/" target="_top">{{ T "nav.home" }}</a>]
+        </p>
+        <p class="board-header">
+            <span class="board-title">{{.Title}}</span>
+            <hr class="title-hr">
+            <table class="reply-mode-banner">
+                <tr>
+                    <th>{{ T "admin.mode" }}</th>
+                </tr>
+            </table>
+            <div class="center">
+                <form class="post-form" action="/admin/login" method="POST">
+                    <table class="post-form-table">
+                        <tr>
+                            <td class="form-label"><b>{{ T "admin.username" }}</b></td>
+                            <td><input type="text" name="username" size="28" autofocus></td>
+                        </tr>
+                        <tr>
+                            <td class="form-label"><b>{{ T "admin.password" }}</b></td>
+                            <td>
+                                <input type="password" name="password" size="28">
+                                <input type="submit" value="{{ T `admin.login_button` }}">
+                            </td>
+                        </tr>
+                        {{if .Error}}
+                        <tr>
+                            <td colspan="2"><small style="color:#cc1105">{{.Error}}</small></td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </form>
+            </div>
+        </p>
+        <p class="footer">
+            - <a href="http://php.s3.to" target="_top">GazouBBS</a> + <a href="http://www.2chan.net/" target="_top">futaba</a> + rikachama -
+        </p>
+    </body>
+</html>

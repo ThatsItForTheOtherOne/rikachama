@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS posts (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    reply_to  INTEGER NOT NULL DEFAULT 0,
+    reply_to  INTEGER REFERENCES posts(id) ON DELETE CASCADE,
     posted_at INTEGER NOT NULL,
     author    TEXT    NOT NULL DEFAULT '名無しさん',
     email     TEXT    NOT NULL DEFAULT '',
@@ -18,3 +18,16 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_reply_to ON posts(reply_to);
+
+CREATE TABLE IF NOT EXISTS admins (
+    id INTEGER PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at    INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS admin_sessions (
+    token  TEXT PRIMARY KEY,
+    admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+    expires_at INTEGER NOT NULL
+);

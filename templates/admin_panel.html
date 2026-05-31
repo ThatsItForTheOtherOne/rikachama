@@ -1,0 +1,62 @@
+<html>
+    <head>
+        <meta http-equiv="Content-type" content="text/html; charset=UTF-8">
+        <link rel="stylesheet" href="/static/style.css">
+        <title>{{.Title}} - admin</title>
+    </head>
+    <body>
+        <p class="nav-right">
+            [<a href="/" target="_top">{{ T "nav.home" }}</a>]
+            [<a href="/admin/logout">{{ T "admin.logout" }}</a>]
+        </p>
+        <p class="board-header">
+            <span class="board-title">{{.Title}}</span>
+            <hr class="title-hr">
+            <table class="reply-mode-banner">
+                <tr>
+                    <th>{{ T "admin.mode" }}</th>
+                </tr>
+            </table>
+        </p>
+        <form action="/admin/delete" method="POST">
+            <p>{{ T "admin.delete_instructions" }}</p>
+            <p>
+                <input type="submit" value="{{ T `admin.delete_button` }}">
+                <input type="reset" value="{{ T `admin.reset_button` }}">
+                [<input type="checkbox" name="onlyimgdel" value="on"> {{ T "admin.only_file" }}]
+            </p>
+            <table class="admin-table" border="1" cellspacing="0">
+                <tr class="admin-table-header">
+                    <th>{{ T "admin.col.delete" }}</th>
+                    <th>{{ T "admin.col.no" }}</th>
+                    <th>{{ T "admin.col.posted" }}</th>
+                    <th>{{ T "admin.col.subject" }}</th>
+                    <th>{{ T "admin.col.author" }}</th>
+                    <th>{{ T "admin.col.comment" }}</th>
+                    <th>{{ T "admin.col.file" }}</th>
+                    <th>{{ T "admin.col.type" }}</th>
+                </tr>
+                {{range .Posts}}
+                <tr>
+                    <td><input type="checkbox" name="delete" value="{{.ID}}"></td>
+                    <td><a href="/thread/{{.ID}}">{{.ID}}</a></td>
+                    <td><small>{{formatTime .PostedAt}}</small></td>
+                    <td>{{.Subject}}</td>
+                    <td><b>{{.Author}}</b></td>
+                    <td><small>{{.Body}}</small></td>
+                    <td>{{if .FileSize}}{{.FileSize}} B{{end}}</td>
+                    <td><small>{{.MimeType}}</small></td>
+                </tr>
+                {{end}}
+            </table>
+            <p>
+                <input type="submit" value="{{ T `admin.delete_button` }}">
+                <input type="reset" value="{{ T `admin.reset_button` }}">
+            </p>
+        </form>
+        <p>[ {{ T "admin.total_data" }}: <b>{{.TotalFileBytes}}</b> bytes ]</p>
+        <p class="footer">
+            - <a href="http://php.s3.to" target="_top">GazouBBS</a> + <a href="http://www.2chan.net/" target="_top">futaba</a> + rikachama -
+        </p>
+    </body>
+</html>
