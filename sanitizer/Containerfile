@@ -1,6 +1,8 @@
 FROM alpine:latest
 
-RUN apk add --no-cache imagemagick ghostscript ffmpeg fontconfig && fc-cache -f
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache imagemagick ghostscript ffmpeg && \
+    fc-cache -f
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

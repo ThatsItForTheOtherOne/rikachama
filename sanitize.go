@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -62,6 +63,7 @@ func acceptedFileTypes() string {
 }
 
 func buildImage(sanitizerImageBase string) (string, error) {
+	var needToBuild bool
 	sanitizerFS, err := fs.Sub(containerFiles, "sanitizer")
 	if err != nil {
 		return "", err
@@ -98,6 +100,16 @@ func buildImage(sanitizerImageBase string) (string, error) {
 	cmd := exec.Command("podman", "image", "exists", sanitizerImage)
 	err = cmd.Run()
 	if err != nil {
+		needToBuild = true
+	}
+	if !needToBuild {
+		created, err := imageCreatedAt(sanitizerImage)
+		if err == nil && time.Since(created) > 7*24*time.Hour {
+			log.Printf("sanitizer image is %v old, forcing rebuild", time.Since(created))
+			needToBuild = true
+		}
+	}
+	if needToBuild {
 		log.Printf("Starting container build, name: %s", sanitizerImage)
 		cmd = exec.Command("podman", "build", "-t", sanitizerImage, dir)
 		cmd.Stderr = os.Stderr
@@ -107,7 +119,7 @@ func buildImage(sanitizerImageBase string) (string, error) {
 		}
 		log.Printf("Container build finished!")
 	} else {
-		log.Printf("Latest container already built, skipping build!")
+		log.Printf("Using cached container image!")
 	}
 	return sanitizerImage, nil
 }
@@ -223,4 +235,17 @@ func (a *App) saveFile(file multipart.File, mimeType string) (savedFile, error) 
 		thumbW, thumbH = cfg.Width, cfg.Height
 	}
 	return savedFile{Path: filePath, ThumbPath: thumbPath, Width: width, Height: height, ThumbWidth: thumbW, ThumbHeight: thumbH, FileSize: int64(len(fileData))}, nil
+}
+
+func imageCreatedAt(name string) (time.Time, error) {
+	out, err := exec.Command("podman", "image", "inspect",
+		"--format", "{{.Created.UnixMilli}}", name).Output()
+	if err != nil {
+		return time.Time{}, err
+	}
+	ms, err := strconv.ParseInt(strings.TrimSpace(string(out)), 10, 64)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("parse podman timestamp: %w", err)
+	}
+	return time.UnixMilli(ms), nil
 }
