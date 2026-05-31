@@ -95,3 +95,18 @@ a:hover { color: #DD0000; }
 .quote {
     color: #789922;
 }
+
+.inline-form {
+    display: inline;
+    margin: 0;
+}
+.link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #0000EE;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.link-button:hover { color: #DD0000; }

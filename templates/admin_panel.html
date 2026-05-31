@@ -5,10 +5,10 @@
         <title>{{.Title}} - admin</title>
     </head>
     <body>
-        <p class="nav-right">
+        <div class="nav-right">
             [<a href="/" target="_top">{{ T "nav.home" }}</a>]
-            [<a href="/admin/logout">{{ T "admin.logout" }}</a>]
-        </p>
+            [<form action="/admin/logout" method="POST" class="inline-form"><button type="submit" class="link-button">{{ T "admin.logout" }}</button></form>]
+        </div>
         <p class="board-header">
             <span class="board-title">{{.Title}}</span>
             <hr class="title-hr">

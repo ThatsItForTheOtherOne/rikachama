@@ -277,7 +277,7 @@ func main() {
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 	})
 
-	http.HandleFunc("GET /admin/logout", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("POST /admin/logout", func(w http.ResponseWriter, r *http.Request) {
 		if c, err := r.Cookie("session"); err == nil {
 			_, _ = app.db.Exec("DELETE FROM admin_sessions WHERE token = ?", c.Value)
 		}

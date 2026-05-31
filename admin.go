@@ -107,7 +107,20 @@ func (a *App) authedAdmin(r *http.Request) (int, error) {
 func (a *App) adminAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, err := a.authedAdmin(r)
-		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, http.ErrNoCookie) {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.SetCookie(w, &http.Cookie{
+				Name:     "session",
+				Value:    "",
+				Path:     "/",
+				HttpOnly: true,
+				Secure:   !a.dev,
+				SameSite: http.SameSiteStrictMode,
+				MaxAge:   -1,
+			})
+			http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
+			return
+		}
+		if errors.Is(err, http.ErrNoCookie) {
 			http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
 			return
 		}
