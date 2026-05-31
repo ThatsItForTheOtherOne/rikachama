@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"embed"
 	"fmt"
 	"image"
 	"io"
+	"io/fs"
+	"log"
 	"mime/multipart"
 	"os"
 	"os/exec"
@@ -58,21 +61,58 @@ func acceptedFileTypes() string {
 	return strings.Join(acceptedTypes, ", ")
 }
 
-func buildImage(sanitizerImage string) error {
+func buildImage(sanitizerImageBase string) (string, error) {
+	sanitizerFS, err := fs.Sub(containerFiles, "sanitizer")
+	if err != nil {
+		return "", err
+	}
+	containerFile, err := sanitizerFS.Open("Containerfile")
+	if err != nil {
+		return "", err
+	}
+	defer containerFile.Close()
+	entrypointFile, err := sanitizerFS.Open("entrypoint.sh")
+	if err != nil {
+		return "", err
+	}
+	defer entrypointFile.Close()
+	hash := sha256.New()
+	_, err = io.Copy(hash, containerFile)
+	if err != nil {
+		return "", err
+	}
+	_, err = io.Copy(hash, entrypointFile)
+	if err != nil {
+		return "", err
+	}
+	digest := hash.Sum(nil)
 	dir, err := os.MkdirTemp("", "sanitizer-*")
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer os.RemoveAll(dir)
-	if err := os.CopyFS(dir, containerFiles); err != nil {
-		return err
+	if err := os.CopyFS(dir, sanitizerFS); err != nil {
+		return "", err
 	}
-	cmd := exec.Command("podman", "build", "-t", sanitizerImage, dir+"/sanitizer/")
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	sanitizerImage := sanitizerImageBase + ":" + fmt.Sprintf("%x", digest)[:12]
+	cmd := exec.Command("podman", "image", "exists", sanitizerImage)
+	err = cmd.Run()
+	if err != nil {
+		log.Printf("Starting container build, name: %s", sanitizerImage)
+		cmd = exec.Command("podman", "build", "-t", sanitizerImage, dir)
+		cmd.Stderr = os.Stderr
+		err = cmd.Run()
+		if err != nil {
+			return "", err
+		}
+		log.Printf("Container build finished!")
+	} else {
+		log.Printf("Latest container already built, skipping build!")
+	}
+	return sanitizerImage, nil
 }
 
-func (c Config) podmanRun(args ...string) *exec.Cmd {
+func (a *App) podmanRun(args ...string) *exec.Cmd {
 	base := []string{
 		"run", "--rm", "-i",
 		"--runtime=runsc",
@@ -84,12 +124,12 @@ func (c Config) podmanRun(args ...string) *exec.Cmd {
 		"--tmpfs", "/tmp:rw,noexec,nosuid,size=256m",
 		"--pids-limit=100",
 		"--memory=512m",
-		c.SanitizerImage,
+		a.sanitizerImage,
 	}
 	return exec.Command("podman", append(base, args...)...)
 }
 
-func (c Config) process(r io.Reader, fileCmd, thumbCmd string) ([]byte, []byte, error) {
+func (a *App) process(r io.Reader, fileCmd, thumbCmd string) ([]byte, []byte, error) {
 	input, err := io.ReadAll(r)
 	if err != nil {
 		return nil, nil, err
@@ -98,13 +138,13 @@ func (c Config) process(r io.Reader, fileCmd, thumbCmd string) ([]byte, []byte, 
 	g := new(errgroup.Group)
 
 	g.Go(func() error {
-		fc := c.podmanRun(fileCmd)
+		fc := a.podmanRun(fileCmd)
 		fc.Stdin, fc.Stdout, fc.Stderr = bytes.NewReader(input), &fileOut, os.Stderr
 		return fc.Run()
 	})
 
 	g.Go(func() error {
-		tc := c.podmanRun(thumbCmd)
+		tc := a.podmanRun(thumbCmd)
 		tc.Stdin, tc.Stdout, tc.Stderr = bytes.NewReader(input), &thumbOut, os.Stderr
 		return tc.Run()
 	})
@@ -125,7 +165,7 @@ func (a *App) saveFile(file multipart.File, mimeType string) (savedFile, error) 
 	var fileData, thumbData []byte
 	if ft.sanitizeCommand != "" {
 		var err error
-		fileData, thumbData, err = a.cfg.process(file, ft.sanitizeCommand, ft.thumbnailCommand)
+		fileData, thumbData, err = a.process(file, ft.sanitizeCommand, ft.thumbnailCommand)
 		if err != nil {
 			return savedFile{}, fmt.Errorf("process %s: %w", mimeType, err)
 		}

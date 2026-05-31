@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -20,20 +19,21 @@ import (
 )
 
 type Config struct {
-	Title          string        `json:"title"`
-	Home           string        `json:"home"`
-	AddInfo        template.HTML `json:"add_info"`
-	MaxKB          int           `json:"max_kb"`
-	MaxW           int           `json:"max_w"`
-	MaxH           int           `json:"max_h"`
-	SanitizerImage string        `json:"sanitizer_image"`
-	Lang           string        `json:"lang"`
+	Title              string        `json:"title"`
+	Home               string        `json:"home"`
+	AddInfo            template.HTML `json:"add_info"`
+	MaxKB              int           `json:"max_kb"`
+	MaxW               int           `json:"max_w"`
+	MaxH               int           `json:"max_h"`
+	SanitizerImageBase string        `json:"sanitizer_image_base"`
+	Lang               string        `json:"lang"`
 }
 
 type App struct {
-	db  *sql.DB
-	cfg Config
-	dev bool
+	db             *sql.DB
+	cfg            Config
+	dev            bool
+	sanitizerImage string
 }
 
 //go:embed schema.sql
@@ -67,10 +67,10 @@ func main() {
 		log.Fatalf("i18n: %v", err)
 	}
 	messages = m
-	if err := buildImage(cfg.SanitizerImage); err != nil {
+	sanitizerImage, err := buildImage(cfg.SanitizerImageBase)
+	if err != nil {
 		log.Fatalf("failed to build sanitizer image: %v", err)
 	}
-
 	db, err := sql.Open("sqlite", "./rikachama.db")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
@@ -79,7 +79,7 @@ func main() {
 	if err := db.Ping(); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
-	fmt.Println("Successfully connected to SQLite database")
+	log.Println("Successfully connected to SQLite database")
 	if _, err := db.Exec(schema); err != nil {
 		log.Fatalf("failed to initialize database: %v", err)
 	}
@@ -91,13 +91,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to clear stale sessions: %v", err)
 	}
-	app := &App{db: db, cfg: cfg, dev: *devMode}
+	app := &App{db: db, cfg: cfg, dev: *devMode, sanitizerImage: sanitizerImage}
 	if *createAdmin != "" {
 		err := app.makeAdmin(*createAdmin)
 		if err != nil {
 			log.Fatalf("Failed to create admin account: %v", err)
 		}
-		fmt.Printf("admin %q created\n", *createAdmin)
+		log.Printf("admin %q created\n", *createAdmin)
 		return
 	}
 	http.Handle("/static/", http.FileServerFS(files))
@@ -153,6 +153,11 @@ func main() {
 			if errors.Is(err, ErrEmptyPost) {
 				http.Error(w, "Post body and file empty", http.StatusUnprocessableEntity)
 				return
+			}
+			if errors.Is(err, ErrTooLong) {
+				http.Error(w, "Post fields too long", http.StatusUnprocessableEntity)
+				return
+
 			}
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
