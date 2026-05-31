@@ -84,9 +84,12 @@ func main() {
 		log.Fatalf("failed to initialize database: %v", err)
 	}
 	_, err = db.Exec("PRAGMA foreign_keys = ON")
-	_, err = db.Exec("DELETE FROM admin_sessions WHERE expires_at < ?", time.Now().Unix())
 	if err != nil {
 		log.Fatalf("failed to set foreign key pragma: %v", err)
+	}
+	_, err = db.Exec("DELETE FROM admin_sessions WHERE expires_at < ?", time.Now().Unix())
+	if err != nil {
+		log.Fatalf("failed to clear stale sessions: %v", err)
 	}
 	app := &App{db: db, cfg: cfg, dev: *devMode}
 	if *createAdmin != "" {
@@ -208,15 +211,15 @@ func main() {
 		http.Redirect(w, r, "/thread/"+strconv.Itoa(id), http.StatusSeeOther)
 
 	})
-	http.Handle("GET /admin", app.adminAuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	http.Handle("GET /admin", app.adminAuthMiddleware(func(w http.ResponseWriter, r *http.Request, admin adminInfo) {
 		posts, filesize, err := app.getAllPosts()
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 		render(w, "admin_panel.html", AdminPage{Config: app.cfg, Posts: posts, TotalFileBytes: filesize})
-	})))
-	http.Handle("POST /admin/delete", app.adminAuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	}))
+	http.Handle("POST /admin/delete", app.adminAuthMiddleware(func(w http.ResponseWriter, r *http.Request, admin adminInfo) {
 		err := r.ParseForm()
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -239,7 +242,7 @@ func main() {
 			}
 		}
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
-	})))
+	}))
 	http.HandleFunc("GET /admin/login", func(w http.ResponseWriter, r *http.Request) {
 		render(w, "admin_login.html", AdminLoginPage{Config: app.cfg, Error: ""})
 	})
@@ -292,6 +295,64 @@ func main() {
 		})
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
+	http.Handle("GET /admin/password", app.adminAuthMiddleware(func(w http.ResponseWriter, r *http.Request, admin adminInfo) {
+		render(w, "admin_password.html", AdminPasswordPage{Config: app.cfg, Error: "", Success: false})
+	}))
+	http.Handle("POST /admin/password", app.adminAuthMiddleware(func(w http.ResponseWriter, r *http.Request, admin adminInfo) {
+		r.Body = http.MaxBytesReader(w, r.Body, 4*1024)
+		cookie, err := r.Cookie("session")
+		if err != nil {
+			log.Printf("password change failed failed for %q: %v", admin.username, err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		err = r.ParseForm()
+		if err != nil {
+			log.Printf("password change failed failed for %q: %v", admin.username, err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		newPw := r.PostForm.Get("new")
+		confirmPw := r.PostForm.Get("confirm")
+
+		if newPw != confirmPw {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			render(w, "admin_password.html", AdminPasswordPage{Config: app.cfg, Error: "Passwords do not match", Success: false})
+			return
+		}
+		if len(newPw) < 8 {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			render(w, "admin_password.html", AdminPasswordPage{Config: app.cfg, Error: "Passwords is too short", Success: false})
+			return
+		}
+		origPw := r.PostForm.Get("current")
+		err = app.verifyLogin(admin.username, origPw)
+		if errors.Is(err, ErrInvalidCredentials) {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			render(w, "admin_password.html", AdminPasswordPage{Config: app.cfg, Error: "Current password incorrect", Success: false})
+			return
+		}
+		if err != nil {
+			log.Printf("login during password change failed for %q: %v", admin.username, err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		err = app.updatePassword(admin.username, newPw)
+		if err != nil {
+			log.Printf("password change failed failed for %q: %v", admin.username, err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		_, err = app.db.Exec(
+			"DELETE FROM admin_sessions WHERE admin_id = ? AND token != ?",
+			admin.adminID, cookie.Value,
+		)
+		if err != nil {
+			log.Printf("session purge failed for %q: %v", admin.username, err)
+		}
+		render(w, "admin_password.html", AdminPasswordPage{Config: app.cfg, Error: "", Success: true})
+	}))
+
 	if app.dev {
 		log.Println("Server running in developer mode! Do not use in production!!!")
 	}

@@ -39,6 +39,12 @@ type AdminLoginPage struct {
 	Error string
 }
 
+type AdminPasswordPage struct {
+	Config
+	Error   string
+	Success bool
+}
+
 //go:embed templates/*.html static/*
 var files embed.FS
 

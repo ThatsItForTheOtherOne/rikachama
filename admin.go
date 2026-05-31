@@ -26,6 +26,13 @@ var dummyHash = createDummyHash()
 var ttl = time.Hour * 1
 var ErrInvalidCredentials = errors.New("invalid credentials")
 
+type adminInfo struct {
+	adminID  int
+	username string
+}
+
+type adminHandler func(w http.ResponseWriter, r *http.Request, admin adminInfo)
+
 func (a *App) makeAdmin(username string) error {
 	fmt.Print("Password: ")
 	pw, err := term.ReadPassword(int(os.Stdin.Fd()))
@@ -91,22 +98,25 @@ func (a *App) createSession(username string, password string) (string, error) {
 	return token, nil
 }
 
-func (a *App) authedAdmin(r *http.Request) (int, error) {
+func (a *App) authedAdmin(r *http.Request) (adminInfo, error) {
 	c, err := r.Cookie("session")
 	if err != nil {
-		return 0, err
+		return adminInfo{}, err
 	}
 	var adminID int
-	err = a.db.QueryRow(
-		`SELECT admin_id FROM admin_sessions WHERE token = ? AND expires_at > ?`,
-		c.Value, time.Now().Unix(),
-	).Scan(&adminID)
-	return adminID, err
+	var username string
+	err = a.db.QueryRow(`
+	    SELECT a.id, a.username
+	    FROM admin_sessions s
+	    JOIN admins a ON s.admin_id = a.id
+	    WHERE s.token = ? AND s.expires_at > ?
+	`, c.Value, time.Now().Unix()).Scan(&adminID, &username)
+	return adminInfo{adminID: adminID, username: username}, err
 }
 
-func (a *App) adminAuthMiddleware(next http.Handler) http.Handler {
+func (a *App) adminAuthMiddleware(h adminHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, err := a.authedAdmin(r)
+		info, err := a.authedAdmin(r)
 		if errors.Is(err, sql.ErrNoRows) {
 			http.SetCookie(w, &http.Cookie{
 				Name:     "session",
@@ -129,6 +139,22 @@ func (a *App) adminAuthMiddleware(next http.Handler) http.Handler {
 			log.Println(err)
 			return
 		}
-		next.ServeHTTP(w, r)
+		h(w, r, info)
 	})
+}
+
+func (a *App) updatePassword(username string, password string) error {
+	hash, err := argon2id.CreateHash(password, params)
+	if err != nil {
+		return err
+	}
+	res, err := a.db.Exec("UPDATE admins SET password_hash = ? WHERE username = ?", hash, username)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return errors.New("database unchanged")
+	}
+	return err
 }
