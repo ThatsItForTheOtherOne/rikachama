@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 type Post struct {
@@ -33,6 +34,11 @@ const postsPerPage = 10
 const postColumns = `id, posted_at, author, email, subject, body,
     file_path, thumbnail_path, thumbnail_width, thumbnail_height, file_size, mime_type, width, height`
 
+const maxNameLen = 50
+const maxEmailLen = 100
+const maxSubjectLen = 100
+const maxBodyLen = 4000
+
 type postScanner interface {
 	Scan(dest ...any) error
 }
@@ -42,6 +48,7 @@ type unknownTypeError struct {
 }
 
 var ErrEmptyPost = errors.New("post must contain a body or file")
+var ErrTooLong = errors.New("post field too long")
 
 func (e *unknownTypeError) Error() string {
 	return fmt.Sprintf("unknown file type: %s", e.MimeType)
@@ -169,9 +176,21 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 	if author == "" {
 		author = T("post.anonymous")
 	}
+	if utf8.RuneCountInString(author) > maxNameLen {
+		return ErrTooLong
+	}
 	email := r.FormValue("email")
+	if utf8.RuneCountInString(email) > maxEmailLen {
+		return ErrTooLong
+	}
 	subject := r.FormValue("sub")
+	if utf8.RuneCountInString(subject) > maxSubjectLen {
+		return ErrTooLong
+	}
 	body := r.FormValue("com")
+	if utf8.RuneCountInString(body) > maxBodyLen {
+		return ErrTooLong
+	}
 	var filePath, thumbnailPath, mimeType string
 	var height, width, thumbnailWidth, thumbnailHeight, fileSize int64
 	file, _, err := r.FormFile("upfile")
