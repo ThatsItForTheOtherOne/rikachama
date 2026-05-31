@@ -1,0 +1,8 @@
+# Rikachama
+This is an imageboard I wrote in golang as a learning exercise. 
+It uses podman/gVisor to securely handle files.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-create-admin <username>` | string | `""` | Create an admin account with the given username (prompts for password on stdin), then exit. |
+| `-dev` | bool | `false` | Enable developer mode. Never enable in production. |
