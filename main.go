@@ -101,7 +101,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to build sanitizer image: %v", err)
 	}
-	db, err := sql.Open("sqlite", "./rikachama.db")
+	db, err := sql.Open("sqlite", cfg.Database)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
