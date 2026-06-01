@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -331,7 +332,7 @@ func (a *App) deleteThread(threadID int) error {
 		if err != nil {
 			return err
 		}
-		unlinkPostFiles(filePath, thumbPath)
+		a.unlinkPostFiles(filePath, thumbPath)
 	}
 	if err := rows.Err(); err != nil {
 		return err
@@ -346,7 +347,7 @@ func (a *App) deleteSinglePost(postID int) error {
 	if err != nil {
 		return err
 	}
-	unlinkPostFiles(filePath, thumbPath)
+	a.unlinkPostFiles(filePath, thumbPath)
 	_, err = a.db.Exec(`DELETE FROM posts WHERE id = ?`, postID)
 	return err
 }
@@ -357,14 +358,14 @@ func (a *App) deleteFile(postID int) error {
 	if err != nil {
 		return err
 	}
-	unlinkPostFiles(filePath, thumbPath)
+	a.unlinkPostFiles(filePath, thumbPath)
 	_, err = a.db.Exec(`UPDATE posts SET file_path = '', thumbnail_path = '/static/deleted_file.png' WHERE id = ?`, postID)
 	return err
 }
 
-func unlinkPostFiles(filePath, thumbPath string) {
+func (a *App) unlinkPostFiles(filePath, thumbPath string) {
 	if filePath != "" {
-		_ = os.Remove("upload/" + filePath)
+		_ = os.Remove(filepath.Join(a.cfg.UploadPath, filePath))
 	}
 	if strings.HasPrefix(thumbPath, "/upload/") {
 		_ = os.Remove(strings.TrimPrefix(thumbPath, "/"))

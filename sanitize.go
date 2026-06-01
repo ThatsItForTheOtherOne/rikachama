@@ -12,6 +12,7 @@ import (
 	"mime/multipart"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -194,14 +195,14 @@ func (a *App) saveFile(file multipart.File, mimeType string) (savedFile, error) 
 
 	base := fmt.Sprintf("%d", time.Now().UnixNano())
 	filePath := base + ft.ext
-	if err := os.WriteFile("upload/"+filePath, fileData, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(a.cfg.UploadPath, filePath), fileData, 0644); err != nil {
 		return savedFile{}, fmt.Errorf("write file: %w", err)
 	}
 
 	var thumbPath string
 	if thumbData != nil {
 		name := base + "_thumb.jpg"
-		if err := os.WriteFile("upload/"+name, thumbData, 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(a.cfg.UploadPath, name), thumbData, 0644); err != nil {
 			return savedFile{}, fmt.Errorf("write thumb: %w", err)
 		}
 		thumbPath = "/upload/" + name

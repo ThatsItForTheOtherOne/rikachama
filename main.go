@@ -6,11 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"html/template"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"time"
@@ -27,6 +30,8 @@ type Config struct {
 	MaxH               int           `json:"max_h"`
 	SanitizerImageBase string        `json:"sanitizer_image_base"`
 	Lang               string        `json:"lang"`
+	Database           string        `json:"database"`
+	UploadPath         string        `json:"upload_path"`
 }
 
 type App struct {
@@ -42,11 +47,16 @@ var schema string
 func main() {
 	createAdmin := flag.String("create-admin", "", "Create an admin with the given username, then exit")
 	devMode := flag.Bool("dev", false, "Enable developer mode")
+	configName := flag.String("config", "config.json", "Specify a file to use as a config")
+	bindPort := flag.Int("port", 3200, "Bind to a specific port (3200 default)")
 	flag.Parse()
 	if runtime.GOOS != "linux" {
 		log.Fatalf("unsupported OS: %s (gvisor requires linux)", runtime.GOOS)
 	}
-	f, err := os.Open("config.json")
+	if *bindPort < 1 || *bindPort > 65535 {
+		log.Fatalf("invalid port %d", *bindPort)
+	}
+	f, err := os.Open(*configName)
 	if err != nil {
 		log.Fatalf("failed to open config: %v", err)
 	}
@@ -61,6 +71,26 @@ func main() {
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
 		log.Fatalf("home URL scheme must be http or https, got %q", u.Scheme)
+	}
+	info, err := os.Stat(cfg.UploadPath)
+	if errors.Is(err, fs.ErrNotExist) {
+		log.Fatalf("upload path %q does not exist", cfg.UploadPath)
+	}
+	if err != nil {
+		log.Fatalf("failed to stat upload path %q: %v", cfg.UploadPath, err)
+	}
+	if !info.IsDir() {
+		log.Fatalf("upload path %q is not a folder", cfg.UploadPath)
+	}
+	probe := filepath.Join(cfg.UploadPath, fmt.Sprintf(".write-test-%d", os.Getpid()))
+	probeF, err := os.OpenFile(probe, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		log.Fatalf("upload path %q is not writable", cfg.UploadPath)
+	}
+	defer probeF.Close()
+	err = os.Remove(probe)
+	if err != nil {
+		log.Printf("could not delete test file in upload path %q, skipping", cfg.UploadPath)
 	}
 	m, err := loadMessages(cfg.Lang)
 	if err != nil {
@@ -101,7 +131,7 @@ func main() {
 		return
 	}
 	http.Handle("/static/", http.FileServerFS(files))
-	http.Handle("/upload/", http.StripPrefix("/upload/", http.FileServer(http.Dir("upload"))))
+	http.Handle("/upload/", http.StripPrefix("/upload/", http.FileServer(http.Dir(cfg.UploadPath))))
 
 	http.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		posts, total, err := app.getThreads(0)
@@ -361,8 +391,8 @@ func main() {
 	if app.dev {
 		log.Println("Server running in developer mode! Do not use in production!!!")
 	}
-	log.Println("Server is serving requests!")
-	log.Fatal(http.ListenAndServe(":3200", nil))
+	log.Printf("Server is serving requests on port %d!", *bindPort)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *bindPort), nil))
 }
 
 func (c Config) MaxFileSize() int {
