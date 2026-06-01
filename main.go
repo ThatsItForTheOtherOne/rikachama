@@ -101,7 +101,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to build sanitizer image: %v", err)
 	}
-	db, err := sql.Open("sqlite", cfg.Database)
+	db, err := sql.Open("sqlite", cfg.Database+"?_foreign_keys=on")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
@@ -113,10 +113,15 @@ func main() {
 	if _, err := db.Exec(schema); err != nil {
 		log.Fatalf("failed to initialize database: %v", err)
 	}
-	_, err = db.Exec("PRAGMA foreign_keys = ON")
-	if err != nil {
-		log.Fatalf("failed to set foreign key pragma: %v", err)
+	// TODO: SQLite-only, Postgres enforces FK unconditionally, no verification needed. Gate when porting to Postgres.
+	var fkEnabled int
+	if err := db.QueryRow("PRAGMA foreign_keys").Scan(&fkEnabled); err != nil {
+		log.Fatalf("verify foreign_keys pragma: %v", err)
 	}
+	if fkEnabled != 1 {
+		log.Fatalf("foreign_keys is %d, expected 1 (DSN didn't apply the pragma)", fkEnabled)
+	}
+
 	_, err = db.Exec("DELETE FROM admin_sessions WHERE expires_at < ?", time.Now().Unix())
 	if err != nil {
 		log.Fatalf("failed to clear stale sessions: %v", err)
