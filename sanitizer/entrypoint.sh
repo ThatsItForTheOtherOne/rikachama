@@ -5,11 +5,17 @@ case "$1" in
     image)
         convert - -strip "jpg:-"
         ;;
+    image-png)
+        convert - -strip "png:-"
+        ;;
     image-gif)
         convert - -strip "gif:-"
         ;;
     image-thumb)
-        convert - -strip -resize 250x250 "jpg:-"
+        convert - -strip -resize "250x250>" "jpg:-"
+        ;;
+    image-png-thumb)
+        convert - -strip -resize "250x250>" "png:-"
         ;;
     video)
         tmp=$(mktemp /tmp/in.XXXXXX)
@@ -24,7 +30,7 @@ case "$1" in
         trap 'rm -f "$tmp"' EXIT
         cat > "$tmp"
         ffmpeg -i "$tmp" -vf "thumbnail" -frames:v 1 -update 1 -f image2 pipe:1 \
-            | convert - -strip -resize 250x250 "jpg:-"
+            | convert - -strip -resize "250x250>" "jpg:-"
         ;;
     pdf)
         gs -q -dNOPAUSE -dBATCH -dSAFER -sDEVICE=pdfwrite \
@@ -32,7 +38,7 @@ case "$1" in
         ;;
     pdf-thumb)
         gs -q -dNOPAUSE -dBATCH -dSAFER -sDEVICE=jpeg -dFirstPage=1 -dLastPage=1 \
-           -sOutputFile=- - | convert - -resize 250x250 "jpg:-"
+           -sOutputFile=- - | convert - -strip -resize "250x250>" "jpg:-"
         ;;
     *)
         echo "unknown tool: $1" >&2

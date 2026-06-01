@@ -22,19 +22,67 @@ import (
 )
 
 var mimeSpecs = map[string]mimeSpec{
-	"image/jpeg":                    {"image", "image-thumb", ".jpg", ""},
-	"image/png":                     {"image", "image-thumb", ".png", ""},
-	"image/gif":                     {"image-gif", "image-thumb", ".gif", ""},
-	"image/webp":                    {"image", "image-thumb", ".webp", ""},
-	"video/mp4":                     {"video", "video-thumb", ".mp4", ""},
-	"video/webm":                    {"video", "video-thumb", ".webm", ""},
-	"application/pdf":               {"pdf", "pdf-thumb", ".pdf", ""},
-	"application/x-shockwave-flash": {"", "", ".swf", "static/swf_thumb.png"},
+	"image/jpeg": {
+		sanitizeCommand:  "image",
+		thumbnailCommand: "image-thumb",
+		outputExt:        ".jpg",
+		thumbnailExt:     ".jpg",
+		displayName:      "JPEG",
+	},
+	"image/png": {
+		sanitizeCommand:  "image-png",
+		thumbnailCommand: "image-png-thumb",
+		outputExt:        ".png",
+		thumbnailExt:     ".png",
+		displayName:      "PNG",
+	},
+	"image/gif": {
+		sanitizeCommand:  "image-gif",
+		thumbnailCommand: "image-thumb",
+		outputExt:        ".gif",
+		thumbnailExt:     ".jpg",
+		displayName:      "GIF",
+	},
+	"image/webp": {
+		sanitizeCommand:  "image-png",
+		thumbnailCommand: "image-png-thumb",
+		outputExt:        ".png",
+		thumbnailExt:     ".png",
+		displayName:      "WebP",
+	},
+	"video/mp4": {
+		sanitizeCommand:  "video",
+		thumbnailCommand: "video-thumb",
+		outputExt:        ".mp4",
+		thumbnailExt:     ".jpg",
+		displayName:      "MP4",
+	},
+	"video/webm": {
+		sanitizeCommand:  "video",
+		thumbnailCommand: "video-thumb",
+		outputExt:        ".mp4",
+		thumbnailExt:     ".jpg",
+		displayName:      "WebM",
+	},
+	"application/pdf": {
+		sanitizeCommand:  "pdf",
+		thumbnailCommand: "pdf-thumb",
+		outputExt:        ".pdf",
+		thumbnailExt:     ".jpg",
+		displayName:      "PDF",
+	},
+	"application/x-shockwave-flash": {
+		outputExt:        ".swf",
+		displayName:      "SWF",
+		defaultThumbnail: "static/swf_thumb.png",
+	},
 }
 
 type mimeSpec struct {
 	sanitizeCommand, thumbnailCommand string
-	ext                               string
+	outputExt                         string
+	thumbnailExt                      string
+	displayName                       string
 	defaultThumbnail                  string
 }
 
@@ -54,9 +102,7 @@ var containerFiles embed.FS
 func acceptedFileTypes() string {
 	var acceptedTypes []string
 	for _, v := range mimeSpecs {
-		var extension = v.ext
-		extension, _ = strings.CutPrefix(extension, ".")
-		extension = strings.ToUpper(extension)
+		var extension = v.displayName
 		acceptedTypes = append(acceptedTypes, extension)
 	}
 	sort.Strings(acceptedTypes)
@@ -194,14 +240,14 @@ func (a *App) saveFile(file multipart.File, mimeType string) (savedFile, error) 
 	}
 
 	base := fmt.Sprintf("%d", time.Now().UnixNano())
-	filePath := base + ft.ext
+	filePath := base + ft.outputExt
 	if err := os.WriteFile(filepath.Join(a.cfg.UploadPath, filePath), fileData, 0644); err != nil {
 		return savedFile{}, fmt.Errorf("write file: %w", err)
 	}
 
 	var thumbPath string
 	if thumbData != nil {
-		name := base + "_thumb.jpg"
+		name := base + "_thumb" + ft.thumbnailExt
 		if err := os.WriteFile(filepath.Join(a.cfg.UploadPath, name), thumbData, 0644); err != nil {
 			return savedFile{}, fmt.Errorf("write thumb: %w", err)
 		}
