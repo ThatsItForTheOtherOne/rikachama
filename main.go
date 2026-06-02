@@ -397,7 +397,11 @@ func main() {
 		log.Println("Server running in developer mode! Do not use in production!!!")
 	}
 	log.Printf("Server is serving requests on port %d!", *bindPort)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *bindPort), nil))
+	server := &http.Server{
+		Addr:              fmt.Sprintf(":%d", *bindPort),
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	log.Fatal(server.ListenAndServe())
 }
 
 func (c Config) MaxFileSize() int {
