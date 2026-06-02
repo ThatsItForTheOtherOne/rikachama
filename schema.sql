@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_reply_to ON posts(reply_to);
+CREATE INDEX IF NOT EXISTS idx_reply_to ON posts(reply_to, bumped_at);
 
 CREATE TABLE IF NOT EXISTS admins (
     id INTEGER PRIMARY KEY,
