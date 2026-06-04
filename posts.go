@@ -73,8 +73,7 @@ const maxNameLen = 50
 const maxEmailLen = 100
 const maxSubjectLen = 100
 const maxBodyLen = 4000
-const maxReplayDuration = 7 * 24 * 60 * 60 // 1 week in seconds
-const maxPdfSize = 5 * 1024 * 1024         // 5MB, PDFs use more resources and need to be capped separately
+const maxPdfSize = 5 * 1024 * 1024 // 5MB, PDFs use more resources and need to be capped separately
 
 const tgkrMagic = "TGK"
 const tgkrHeaderLen = 12
@@ -305,9 +304,6 @@ func parseAndValidateFields(r *http.Request) (parsedFields, error) {
 		d, err := strconv.Atoi(durationStr)
 		if err != nil {
 			return parsedFields{}, fmt.Errorf("%w: invalid duration %q", ErrInvalidReplay, durationStr)
-		}
-		if d > maxReplayDuration {
-			return parsedFields{}, fmt.Errorf("%w: duration %d out of range", ErrInvalidReplay, d)
 		}
 		if d < 0 {
 			return parsedFields{}, fmt.Errorf("%w: invalid duration %q", ErrInvalidReplay, d)
