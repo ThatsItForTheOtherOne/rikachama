@@ -266,7 +266,7 @@ func main() {
 				http.Error(w, "Oekaki is not enabled on this board", http.StatusUnprocessableEntity)
 				return
 			}
-			if errors.Is(err, ErrAttachmentTooLarge) || errors.Is(err, ErrReplayTooLarge) {
+			if errors.Is(err, ErrAttachmentTooLarge) || errors.Is(err, ErrReplayTooLarge) || errors.Is(err, ErrPDFTooLarge) {
 				http.Error(w, "Attached file too large", http.StatusRequestEntityTooLarge)
 				return
 			}

@@ -59,9 +59,20 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"acceptedFileTypes": acceptedFileTypes,
 	"formatBody":        formatBody,
 	"formatTime":        formatTime,
+	"formatDuration":    formatDuration,
 	"pageURL":           pageURL,
 	"pageRange":         pageRange,
 }).ParseFS(files, "templates/*.html"))
+
+func formatDuration(secs int) string {
+	if secs < 60 {
+		return fmt.Sprintf("%ds", secs)
+	}
+	if secs < 3600 {
+		return fmt.Sprintf("%dm %ds", secs/60, secs%60)
+	}
+	return fmt.Sprintf("%dh %dm", secs/3600, (secs%3600)/60)
+}
 
 var quoteLineRe = regexp.MustCompile(`(^|<br>)(&gt;[^<]*)`)
 

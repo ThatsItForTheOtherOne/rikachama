@@ -29,6 +29,12 @@
                     if (replayBlob) {
                         attachFile('replay_file', replayBlob, 'oekaki.tgkr', 'application/octet-stream');
                     }
+                    var rr = Tegaki.replayRecorder;
+                    if (rr.startTimeStamp && rr.endTimeStamp && rr.endTimeStamp > rr.startTimeStamp) {
+                        var secs = Math.ceil((rr.endTimeStamp - rr.startTimeStamp) / 1000);
+                        var dur = document.querySelector('input[name="replay_duration"]');
+                        if (dur) { dur.value = String(secs); }
+                    }
                 }
             },
             onCancel: function () {}

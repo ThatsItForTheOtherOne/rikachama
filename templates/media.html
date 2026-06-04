@@ -7,6 +7,7 @@
 <span class="file-info">{{ T "post.image_title" }}<a href="/upload/{{.FilePath}}" target="_blank">{{.FilePath}}</a>-({{.FileSize}} B)</span>
 {{- if .ReplayPath}}
 [<a href="/replay/{{.ID}}">{{ T "post.watch_drawing" }}</a>]
+{{- if .ReplayDuration}}<small class="replay-duration">({{ formatDuration .ReplayDuration }})</small>{{ end }}
 {{- end}}
 <br>
 {{- if eq .Kind "video"}}

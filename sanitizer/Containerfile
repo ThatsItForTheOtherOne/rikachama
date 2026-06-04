@@ -4,6 +4,8 @@ RUN apk update && apk upgrade --no-cache && \
     apk add --no-cache imagemagick ghostscript ffmpeg && \
     fc-cache -f
 
+ENV XDG_CACHE_HOME=/tmp/fc
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -33,6 +34,7 @@ type Post struct {
 	FileSize                                       int64
 	MimeType                                       string
 	Replies                                        []Post
+	ReplayDuration                                 int
 }
 
 type tgkrHeader struct {
@@ -44,27 +46,35 @@ type tgkrHeader struct {
 }
 
 type form struct {
-	Author    string
-	Email     string
-	Subject   string
-	Body      string
-	HasFile   bool
-	File      []byte
-	MimeType  string
-	HasReplay bool
-	Replay    []byte
-	Sage      bool
+	Author         string
+	Email          string
+	Subject        string
+	Body           string
+	HasFile        bool
+	File           []byte
+	MimeType       string
+	HasReplay      bool
+	Replay         []byte
+	Sage           bool
+	ReplayDuration int
+}
+
+type parsedFields struct {
+	Author, Email, Subject, Body string
+	Duration                     int
 }
 
 const postsPerPage = 10
 
 const postColumns = `id, posted_at, author, email, subject, body,
-    file_path, thumbnail_path, thumbnail_width, thumbnail_height, file_size, mime_type, width, height, replay_path`
+    file_path, thumbnail_path, thumbnail_width, thumbnail_height, file_size, mime_type, width, height, replay_path, replay_duration`
 
 const maxNameLen = 50
 const maxEmailLen = 100
 const maxSubjectLen = 100
 const maxBodyLen = 4000
+const maxReplayDuration = 7 * 24 * 60 * 60 // 1 week in seconds
+const maxPdfSize = 5 * 1024 * 1024         // 5MB, PDFs use more resources and need to be capped separately
 
 const tgkrMagic = "TGK"
 const tgkrHeaderLen = 12
@@ -84,6 +94,7 @@ var ErrOekakiDisabled = errors.New("oekaki is disabled for this board")
 var ErrAttachmentTooLarge = errors.New("attachment exceeds size limit")
 var ErrReplayTooLarge = errors.New("replay file exceeds size limit")
 var ErrInvalidReplay = errors.New("replay file is invalid")
+var ErrPDFTooLarge = errors.New("PDF too large to sanitize (limit 5MB)")
 
 func (e *unknownTypeError) Error() string {
 	return fmt.Sprintf("unknown file type: %s", e.MimeType)
@@ -96,7 +107,7 @@ func scanPost(s postScanner) (Post, error) {
 		&p.ID, &postedAt, &p.Author, &p.Email,
 		&p.Subject, &p.Body, &p.FilePath, &p.ThumbnailPath,
 		&p.ThumbnailWidth, &p.ThumbnailHeight, &p.FileSize, &p.MimeType,
-		&p.Width, &p.Height, &p.ReplayPath,
+		&p.Width, &p.Height, &p.ReplayPath, &p.ReplayDuration,
 	); err != nil {
 		return Post{}, err
 	}
@@ -198,7 +209,7 @@ func (a *App) getThread(threadID int) (Post, error) {
 	return op, nil
 }
 
-func (a *App) parseForm(r *http.Request) (form, error) {
+func (a *App) validateAndHandleForm(r *http.Request) (form, error) {
 	err := r.ParseMultipartForm(int64(a.cfg.MaxBodySize()))
 	if err != nil {
 		return form{}, err
@@ -208,11 +219,11 @@ func (a *App) parseForm(r *http.Request) (form, error) {
 	if !a.cfg.OekakiEnabled && hasReplay {
 		return form{}, ErrOekakiDisabled
 	}
-	author, email, subject, body, err := parseAndValidateFields(r)
+	fields, err := parseAndValidateFields(r)
 	if err != nil {
 		return form{}, err
 	}
-	if !hasFile && len(body) == 0 {
+	if !hasFile && len(fields.Body) == 0 {
 		return form{}, ErrEmptyPost
 	}
 	var fileBytes []byte
@@ -228,6 +239,9 @@ func (a *App) parseForm(r *http.Request) (form, error) {
 		fileBytes, mimeType, err = readAndDetectMime(f)
 		if err != nil {
 			return form{}, err
+		}
+		if mimeType == "application/pdf" && fh.Size > maxPdfSize {
+			return form{}, ErrAttachmentTooLarge
 		}
 	}
 	var replayFileBytes []byte
@@ -247,42 +261,60 @@ func (a *App) parseForm(r *http.Request) (form, error) {
 			return form{}, err
 		}
 	}
-	sage := strings.EqualFold(email, "sage")
+	sage := strings.EqualFold(fields.Email, "sage")
 	return form{
-		Author:    author,
-		Email:     email,
-		Subject:   subject,
-		Body:      body,
-		HasFile:   hasFile,
-		File:      fileBytes,
-		MimeType:  mimeType,
-		HasReplay: hasReplay,
-		Replay:    replayFileBytes,
-		Sage:      sage,
+		Author:         fields.Author,
+		Email:          fields.Email,
+		Subject:        fields.Subject,
+		Body:           fields.Body,
+		HasFile:        hasFile,
+		File:           fileBytes,
+		MimeType:       mimeType,
+		HasReplay:      hasReplay,
+		Replay:         replayFileBytes,
+		Sage:           sage,
+		ReplayDuration: fields.Duration,
 	}, nil
 }
 
-func parseAndValidateFields(r *http.Request) (author, email, subject, body string, err error) {
-	author = r.FormValue("name")
+func parseAndValidateFields(r *http.Request) (parsedFields, error) {
+	author := r.FormValue("name")
 	if author == "" {
 		author = T("post.anonymous")
 	}
 	if utf8.RuneCountInString(author) > maxNameLen {
-		return "", "", "", "", ErrTooLong
+		return parsedFields{}, ErrTooLong
 	}
-	email = r.FormValue("email")
+	email := r.FormValue("email")
 	if utf8.RuneCountInString(email) > maxEmailLen {
-		return "", "", "", "", ErrTooLong
+		return parsedFields{}, ErrTooLong
 	}
-	subject = r.FormValue("sub")
+	subject := r.FormValue("sub")
 	if utf8.RuneCountInString(subject) > maxSubjectLen {
-		return "", "", "", "", ErrTooLong
+		return parsedFields{}, ErrTooLong
+
 	}
-	body = r.FormValue("com")
+	body := r.FormValue("com")
 	if utf8.RuneCountInString(body) > maxBodyLen {
-		return "", "", "", "", ErrTooLong
+		return parsedFields{}, ErrTooLong
+
 	}
-	return author, email, subject, body, nil
+	durationStr := r.FormValue("replay_duration")
+	var duration int
+	if durationStr != "" {
+		d, err := strconv.Atoi(durationStr)
+		if err != nil {
+			return parsedFields{}, fmt.Errorf("%w: invalid duration %q", ErrInvalidReplay, durationStr)
+		}
+		if d > maxReplayDuration {
+			return parsedFields{}, fmt.Errorf("%w: duration %d out of range", ErrInvalidReplay, d)
+		}
+		if d < 0 {
+			return parsedFields{}, fmt.Errorf("%w: invalid duration %q", ErrInvalidReplay, d)
+		}
+		duration = d
+	}
+	return parsedFields{Author: author, Subject: subject, Email: email, Body: body, Duration: duration}, nil
 }
 
 func validateReplay(data []byte) error {
@@ -338,7 +370,7 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 	if threadID == 0 {
 		reply_to = nil
 	}
-	form, err := a.parseForm(r)
+	form, err := a.validateAndHandleForm(r)
 	if err != nil {
 		return err
 	}
@@ -361,14 +393,14 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 	INSERT INTO posts
     	(reply_to, posted_at, bumped_at, author, email, subject, body,
     	 file_path, thumbnail_path, thumbnail_width, thumbnail_height, file_size, mime_type,
-		 width, height, replay_path)
+		 width, height, replay_path, replay_duration)
 	VALUES
-    	(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    	(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		reply_to, postedAt, postedAt,
 		form.Author, form.Email, form.Subject, form.Body,
 		file.Path, file.ThumbPath,
 		file.ThumbWidth, file.ThumbHeight, file.FileSize, form.MimeType,
-		file.Width, file.Height, replayPath,
+		file.Width, file.Height, replayPath, form.ReplayDuration,
 	)
 	if err != nil {
 		return err

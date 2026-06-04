@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS posts (
     file_path      TEXT NOT NULL DEFAULT '',
     thumbnail_path TEXT NOT NULL DEFAULT '',
     replay_path TEXT NOT NULL DEFAULT '',
+    replay_duration INTEGER NOT NULL DEFAULT 0,
     thumbnail_width     INTEGER NOT NULL DEFAULT 0,
     thumbnail_height    INTEGER NOT NULL DEFAULT 0,
     file_size INTEGER NOT NULL DEFAULT 0,
