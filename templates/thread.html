@@ -72,6 +72,10 @@
                 <span class="post-subject">{{.Subject}}</span>
                 {{ T "post.name_label" }} <span class="post-author">{{if .Email}}<a href="mailto:{{.Email}}">{{.Author}}</a>{{else}}{{.Author}}{{end}}</span>
                 {{formatTime .PostedAt}} No.{{.ID}} &nbsp;
+                {{if and $.OekakiEnabled .ReplayPath}}
+                [<a href="/replay/{{.ID}}">{{ T "post.watch_drawing" }}</a>]
+                {{- if .ReplayDuration}}<small class="replay-duration">({{ formatDuration .ReplayDuration }})</small>{{ end }}
+                {{end}}
                 <br>
                 {{template "media" .}}
                 <blockquote class="post-body">{{formatBody .Body}}</blockquote>
@@ -84,6 +88,10 @@
                             <span class="post-subject">{{.Subject}}</span>
                             {{ T "post.name_label" }} <span class="post-author">{{if .Email}}<a href="mailto:{{.Email}}">{{.Author}}</a>{{else}}{{.Author}}{{end}}</span>
                             {{formatTime .PostedAt}} No.{{.ID}} &nbsp;
+                            {{if and $.OekakiEnabled .ReplayPath}}
+                            [<a href="/replay/{{.ID}}">{{ T "post.watch_drawing" }}</a>]
+                            {{- if .ReplayDuration}}<small class="replay-duration">({{ formatDuration .ReplayDuration }})</small>{{ end }}
+                            {{end}}
                             <br>
                             {{template "media" .}}
                             <blockquote class="post-body">{{formatBody .Body}}</blockquote>
