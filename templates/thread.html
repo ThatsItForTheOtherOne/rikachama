@@ -2,6 +2,7 @@
     <head>
         <meta http-equiv="Content-type" content="text/html; charset=UTF-8">
         <link rel="stylesheet" href="/static/style.css">
+        {{if .OekakiEnabled}}<link rel="stylesheet" href="/static/tegaki/tegaki.css">{{end}}
         <title>{{.Title}}</title>
     </head>
     <body>
@@ -19,7 +20,7 @@
             </table>
             <div class="center">
                 <form class="post-form" action="/thread/{{.Thread.ID}}" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="MAX_FILE_SIZE" value="{{.MaxFileSize}}">
+                    <input type="hidden" name="MAX_FILE_SIZE" value="{{.MaxBodySize}}">
                     <table class="post-form-table">
                         <tr>
                             <td class="form-label"><b>{{ T "form.name" }}</b></td>
@@ -42,7 +43,13 @@
                         </tr>
                         <tr>
                             <td class="form-label"><b>{{ T "form.attach" }}</b></td>
-                            <td><input type="file" name="upfile" size="35"></td>
+                            <td>
+                                <input type="file" name="upfile" size="35">
+                                {{if .OekakiEnabled}}
+                                <button type="button" id="oekaki-btn">{{ T "form.draw" }}</button>
+                                <input type="file" name="replay_file" id="replay-file-input" style="display:none">
+                                {{end}}
+                            </td>
                         </tr>
                         <tr>
                             <td colspan="2">
@@ -107,5 +114,9 @@
             <script>window.i18n = {{ jsMessages }};</script>
             <script src="/static/ruffle/ruffle.js"></script>
             <script src="/static/enhance.js"></script>
+            {{if .OekakiEnabled}}
+            <script src="/static/tegaki/tegaki.js"></script>
+            <script src="/static/oekaki.js"></script>
+            {{end}}
         </body>
     </html>

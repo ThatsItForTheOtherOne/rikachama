@@ -5,6 +5,9 @@
 <img class="post-image" src="/static/deleted_file.png" alt="">
 {{- else if .FilePath}}
 <span class="file-info">{{ T "post.image_title" }}<a href="/upload/{{.FilePath}}" target="_blank">{{.FilePath}}</a>-({{.FileSize}} B)</span>
+{{- if .ReplayPath}}
+[<a href="/replay/{{.ID}}">{{ T "post.watch_drawing" }}</a>]
+{{- end}}
 <br>
 {{- if eq .Kind "video"}}
 <small class="thumbnail-notice">{{ T "post.click_to_play" }}</small>

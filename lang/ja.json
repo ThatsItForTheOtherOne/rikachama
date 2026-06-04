@@ -8,6 +8,7 @@
     "form.submit": "送信する",
     "form.comment": "コメント",
     "form.attach": "添付File",
+    "form.draw": "お絵かき",
     "form.attach_note": "添付可能ファイル：%s ブラウザによっては正常に添付できないことがあります。",
     "form.max_size_note": "最大投稿データ量は %d KB までです。sage機能付き。",
     "form.image_size_note": "画像は横 %d ピクセル、縦 %d ピクセルを超えると縮小表示されます。",
@@ -18,6 +19,7 @@
     "post.image_title": "画像タイトル：",
     "post.click_to_play": "クリックで再生します.",
     "post.thumbnail_notice": "サムネイルを表示しています.クリックすると元のサイズを表示します.",
+    "post.watch_drawing": "動画再生",
     "post.minimize": "最小化",
     "post.file_deleted": "ファイルは管理者により削除されました。",
 

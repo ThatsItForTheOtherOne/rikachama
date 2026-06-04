@@ -8,6 +8,7 @@
     "form.submit": "Post",
     "form.comment": "Comment",
     "form.attach": "File",
+    "form.draw": "Draw",
     "form.attach_note": "Allowed file types are: %s.",
     "form.max_size_note": "Maximum post size is %d KB. sage supported.",
     "form.image_size_note": "Images larger than %d×%d pixels will be thumbnailed.",
@@ -18,6 +19,7 @@
     "post.image_title": "Image:",
     "post.click_to_play": "Click to play.",
     "post.thumbnail_notice": "Showing thumbnail. Click for the original.",
+    "post.watch_drawing": "Watch drawing",
     "post.minimize": "Minimize",
     "post.file_deleted": "File deleted by moderator.",
 

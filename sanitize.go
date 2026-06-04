@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/fs"
 	"log"
-	"mime/multipart"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -188,11 +187,7 @@ func (a *App) podmanRun(args ...string) *exec.Cmd {
 	return exec.Command("podman", append(base, args...)...)
 }
 
-func (a *App) process(r io.Reader, fileCmd, thumbCmd string) ([]byte, []byte, error) {
-	input, err := io.ReadAll(r)
-	if err != nil {
-		return nil, nil, err
-	}
+func (a *App) process(input []byte, fileCmd, thumbCmd string) ([]byte, []byte, error) {
 	var fileOut, thumbOut bytes.Buffer
 	g := new(errgroup.Group)
 
@@ -215,7 +210,7 @@ func (a *App) process(r io.Reader, fileCmd, thumbCmd string) ([]byte, []byte, er
 	return fileOut.Bytes(), thumbOut.Bytes(), nil
 }
 
-func (a *App) saveFile(file multipart.File, mimeType string) (savedFile, error) {
+func (a *App) saveFile(file []byte, mimeType string, fileBaseName string) (savedFile, error) {
 	ft, ok := mimeSpecs[mimeType]
 	if !ok {
 		return savedFile{}, fmt.Errorf("unsupported file type: %s", mimeType)
@@ -229,25 +224,20 @@ func (a *App) saveFile(file multipart.File, mimeType string) (savedFile, error) 
 			return savedFile{}, fmt.Errorf("process %s: %w", mimeType, err)
 		}
 	} else {
-		data, err := io.ReadAll(file)
-		if err != nil {
-			return savedFile{}, fmt.Errorf("read upload: %w", err)
-		}
-		if mimeType == "application/x-shockwave-flash" && !isSWF(data) {
+		if mimeType == "application/x-shockwave-flash" && !isSWF(file) {
 			return savedFile{}, fmt.Errorf("invalid SWF file")
 		}
-		fileData = data
+		fileData = file
 	}
 
-	base := fmt.Sprintf("%d", time.Now().UnixNano())
-	filePath := base + ft.outputExt
+	filePath := fileBaseName + ft.outputExt
 	if err := os.WriteFile(filepath.Join(a.cfg.UploadPath, filePath), fileData, 0644); err != nil {
 		return savedFile{}, fmt.Errorf("write file: %w", err)
 	}
 
 	var thumbPath string
 	if thumbData != nil {
-		name := base + "_thumb" + ft.thumbnailExt
+		name := fileBaseName + "_thumb" + ft.thumbnailExt
 		if err := os.WriteFile(filepath.Join(a.cfg.UploadPath, name), thumbData, 0644); err != nil {
 			return savedFile{}, fmt.Errorf("write thumb: %w", err)
 		}

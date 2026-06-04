@@ -1,0 +1,50 @@
+<html>
+    <head>
+        <meta http-equiv="Content-type" content="text/html; charset=UTF-8">
+        <link rel="stylesheet" href="/static/style.css">
+        <link rel="stylesheet" href="/static/tegaki/tegaki.css">
+        <title>{{.Title}} - {{ T "post.watch_drawing" }}</title>
+    </head>
+    <body>
+        <p class="nav-right">
+            [<a href="{{.Home}}" target="_top">{{ T "nav.home" }}</a>]
+            [<a href="javascript:history.back()">{{ T "nav.back_to_board" }}</a>]
+        </p>
+        <p class="board-header">
+            <span class="board-title">{{.Title}}</span>
+            <hr class="title-hr">
+            <table class="reply-mode-banner">
+                <tr>
+                    <th>{{ T "post.watch_drawing" }}</th>
+                </tr>
+            </table>
+        </p>
+        <p class="footer">
+            - <a href="http://php.s3.to" target="_top">GazouBBS</a> + <a href="http://www.2chan.net/" target="_top">futaba</a> + rikachama -
+        </p>
+        <script>window.i18n = {{ jsMessages }};</script>
+        <script src="/static/tegaki/tegaki.js"></script>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            function leaveReplay() {
+                if (history.length > 1) {
+                    history.back();
+                } else {
+                    window.location.href = '/';
+                }
+            }
+            // Replay viewer's close button calls onCloseViewerClick (not onDoneCb/onCancelCb).
+            // Wrap it to fire our leave handler after Tegaki tears itself down.
+            var origCloseViewer = Tegaki.onCloseViewerClick;
+            Tegaki.onCloseViewerClick = function () {
+                origCloseViewer.call(Tegaki);
+                leaveReplay();
+            };
+            Tegaki.open({
+                replayMode: true,
+                replayURL: {{.ReplayURL}}
+            });
+        });
+        </script>
+    </body>
+</html>

@@ -45,6 +45,11 @@ type AdminPasswordPage struct {
 	Success bool
 }
 
+type ReplayPage struct {
+	Config
+	ReplayURL string
+}
+
 //go:embed templates/*.html static/*
 var files embed.FS
 

@@ -26,12 +26,14 @@ type Config struct {
 	Home               string        `json:"home"`
 	AddInfo            template.HTML `json:"add_info"`
 	MaxKB              int           `json:"max_kb"`
+	MaxReplayKB        int           `json:"max_replay_kb"`
 	MaxW               int           `json:"max_w"`
 	MaxH               int           `json:"max_h"`
 	SanitizerImageBase string        `json:"sanitizer_image_base"`
 	Lang               string        `json:"lang"`
 	Database           string        `json:"database"`
 	UploadPath         string        `json:"upload_path"`
+	OekakiEnabled      bool          `json:"oekaki_enabled"`
 }
 
 type App struct {
@@ -101,7 +103,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to build sanitizer image: %v", err)
 	}
-	db, err := sql.Open("sqlite", cfg.Database+"?_foreign_keys=on")
+	db, err := sql.Open("sqlite", cfg.Database+"?_pragma=foreign_keys(1)")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
@@ -168,7 +170,7 @@ func main() {
 	})
 
 	http.HandleFunc("POST /{$}", func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, int64(cfg.MaxFileSize()))
+		r.Body = http.MaxBytesReader(w, r.Body, int64(cfg.MaxBodySize()))
 		if err := app.handlePost(r, 0); err != nil {
 			log.Println(err)
 			var maxErr *http.MaxBytesError
@@ -192,7 +194,18 @@ func main() {
 			if errors.Is(err, ErrTooLong) {
 				http.Error(w, "Post fields too long", http.StatusUnprocessableEntity)
 				return
-
+			}
+			if errors.Is(err, ErrOekakiDisabled) {
+				http.Error(w, "Oekaki is not enabled on this board", http.StatusUnprocessableEntity)
+				return
+			}
+			if errors.Is(err, ErrAttachmentTooLarge) || errors.Is(err, ErrReplayTooLarge) {
+				http.Error(w, "Attached file too large", http.StatusRequestEntityTooLarge)
+				return
+			}
+			if errors.Is(err, ErrInvalidReplay) {
+				http.Error(w, "Invalid replay file", http.StatusUnprocessableEntity)
+				return
 			}
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -219,7 +232,7 @@ func main() {
 		render(w, "thread.html", ThreadPage{Config: app.cfg, Thread: thread})
 	})
 	http.HandleFunc("POST /thread/{id}", func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, int64(cfg.MaxFileSize()))
+		r.Body = http.MaxBytesReader(w, r.Body, int64(cfg.MaxBodySize()))
 		id, err := strconv.Atoi(r.PathValue("id"))
 		if err != nil {
 			http.Error(w, "Not Found", http.StatusNotFound)
@@ -243,6 +256,22 @@ func main() {
 			}
 			if errors.Is(err, ErrEmptyPost) {
 				http.Error(w, "Post body and file empty", http.StatusUnprocessableEntity)
+				return
+			}
+			if errors.Is(err, ErrTooLong) {
+				http.Error(w, "Post fields too long", http.StatusUnprocessableEntity)
+				return
+			}
+			if errors.Is(err, ErrOekakiDisabled) {
+				http.Error(w, "Oekaki is not enabled on this board", http.StatusUnprocessableEntity)
+				return
+			}
+			if errors.Is(err, ErrAttachmentTooLarge) || errors.Is(err, ErrReplayTooLarge) {
+				http.Error(w, "Attached file too large", http.StatusRequestEntityTooLarge)
+				return
+			}
+			if errors.Is(err, ErrInvalidReplay) {
+				http.Error(w, "Invalid replay file", http.StatusUnprocessableEntity)
 				return
 			}
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -392,6 +421,30 @@ func main() {
 		}
 		render(w, "admin_password.html", AdminPasswordPage{Config: app.cfg, Error: "", Success: true})
 	}))
+	http.HandleFunc("GET /replay/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}
+
+		var replayPath string
+		err = app.db.QueryRow("SELECT replay_path FROM posts WHERE id = ?", id).Scan(&replayPath)
+		if errors.Is(err, sql.ErrNoRows) || replayPath == "" {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+
+		render(w, "replay.html", ReplayPage{
+			Config:    app.cfg,
+			ReplayURL: "/upload/" + replayPath,
+		})
+	})
 
 	if app.dev {
 		log.Println("Server running in developer mode! Do not use in production!!!")
@@ -404,6 +457,9 @@ func main() {
 	log.Fatal(server.ListenAndServe())
 }
 
-func (c Config) MaxFileSize() int {
-	return c.MaxKB * 1024
+func (c Config) MaxBodySize() int {
+	return (c.MaxKB+c.MaxReplayKB)*1024 + (64 * 1024)
 }
+
+func (c Config) MaxAttachmentSize() int { return c.MaxKB * 1024 }
+func (c Config) MaxReplaySize() int     { return c.MaxReplayKB * 1024 }
