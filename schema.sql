@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS posts (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     reply_to  INTEGER REFERENCES posts(id) ON DELETE CASCADE,
     posted_at INTEGER NOT NULL,
-    author    TEXT    NOT NULL DEFAULT '名無しさん',
+    author    TEXT    NOT NULL DEFAULT '',
     email     TEXT    NOT NULL DEFAULT '',
     subject   TEXT    NOT NULL DEFAULT '',
     body      TEXT    NOT NULL DEFAULT '',
