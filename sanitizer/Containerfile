@@ -1,7 +1,7 @@
 FROM alpine:latest
 
 RUN apk update && apk upgrade --no-cache && \
-    apk add --no-cache imagemagick ghostscript ffmpeg && \
+    apk add --no-cache imagemagick ffmpeg mupdf-tools && \
     fc-cache -f
 
 ENV XDG_CACHE_HOME=/tmp/fc

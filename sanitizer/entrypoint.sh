@@ -3,19 +3,19 @@ set -e
 
 case "$1" in
     image)
-        convert - -strip "jpg:-"
+        magick - -strip "jpg:-"
         ;;
     image-png)
-        convert - -strip "png:-"
+        magick - -strip "png:-"
         ;;
     image-gif)
-        convert - -strip "gif:-"
+        magick - -strip "gif:-"
         ;;
     image-thumb)
-        convert - -strip -resize "250x250>" "jpg:-"
+        magick - -strip -resize "250x250>" "jpg:-"
         ;;
     image-png-thumb)
-        convert - -strip -resize "250x250>" "png:-"
+        magick - -strip -resize "250x250>" "png:-"
         ;;
     video)
         tmp=$(mktemp /tmp/in.XXXXXX)
@@ -30,15 +30,21 @@ case "$1" in
         trap 'rm -f "$tmp"' EXIT
         cat > "$tmp"
         ffmpeg -i "$tmp" -vf "thumbnail" -frames:v 1 -update 1 -f image2 pipe:1 \
-            | convert - -strip -resize "250x250>" "jpg:-"
+            | magick - -strip -resize "250x250>" "jpg:-"
         ;;
     pdf)
-        gs -q -dNOPAUSE -dBATCH -dSAFER -sDEVICE=pdfwrite \
-           -sOutputFile=- -
+        d=$(mktemp -d /tmp/pdf.XXXXXX)
+        trap 'rm -rf "$d"' EXIT
+        cat > "$d/in.pdf"
+        mutool clean -g -g -g -g -d -a -s "$d/in.pdf" "$d/out.pdf"
+        cat "$d/out.pdf"
         ;;
     pdf-thumb)
-        gs -q -dNOPAUSE -dBATCH -dSAFER -sDEVICE=jpeg -dFirstPage=1 -dLastPage=1 \
-           -sOutputFile=- - | convert - -strip -resize "250x250>" "jpg:-"
+        d=$(mktemp -d /tmp/pdf.XXXXXX)
+        trap 'rm -rf "$d"' EXIT
+        cat > "$d/in.pdf"
+        mutool draw -F png -h 250 -o - "$d/in.pdf" 1 \
+            | magick - -strip -resize "250x250>" "jpg:-"
         ;;
     *)
         echo "unknown tool: $1" >&2
