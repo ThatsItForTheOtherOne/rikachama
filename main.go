@@ -34,6 +34,7 @@ type Config struct {
 	Database           string        `json:"database"`
 	UploadPath         string        `json:"upload_path"`
 	OekakiEnabled      bool          `json:"oekaki_enabled"`
+	SiteSecret         string        `json:"site_secret"`
 }
 
 type App struct {
@@ -272,6 +273,14 @@ func main() {
 			}
 			if errors.Is(err, ErrInvalidReplay) {
 				http.Error(w, "Invalid replay file", http.StatusUnprocessableEntity)
+				return
+			}
+			if errors.Is(err, ErrInvalidTripPassword) {
+				http.Error(w, "Tripcode password cannot be empty", http.StatusUnprocessableEntity)
+				return
+			}
+			if errors.Is(err, ErrMissingSiteSecret) {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

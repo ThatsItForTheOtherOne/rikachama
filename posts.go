@@ -27,6 +27,8 @@ type Post struct {
 	Email                                          string
 	Subject                                        string
 	Body                                           string
+	Tripcode                                       string
+	TripcodeSecure                                 bool
 	FilePath                                       string
 	ThumbnailPath                                  string
 	ReplayPath                                     string
@@ -66,7 +68,7 @@ type parsedFields struct {
 
 const postsPerPage = 10
 
-const postColumns = `id, posted_at, author, email, subject, body,
+const postColumns = `id, posted_at, author, email, subject, body, tripcode, tripcode_secure,
     file_path, thumbnail_path, thumbnail_width, thumbnail_height, file_size, mime_type, width, height, replay_path, replay_duration`
 
 const maxNameLen = 50
@@ -104,7 +106,8 @@ func scanPost(s postScanner) (Post, error) {
 	var postedAt int64
 	if err := s.Scan(
 		&p.ID, &postedAt, &p.Author, &p.Email,
-		&p.Subject, &p.Body, &p.FilePath, &p.ThumbnailPath,
+		&p.Subject, &p.Body, &p.Tripcode, &p.TripcodeSecure,
+		&p.FilePath, &p.ThumbnailPath,
 		&p.ThumbnailWidth, &p.ThumbnailHeight, &p.FileSize, &p.MimeType,
 		&p.Width, &p.Height, &p.ReplayPath, &p.ReplayDuration,
 	); err != nil {
@@ -370,6 +373,12 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 	if err != nil {
 		return err
 	}
+	var tripcode string
+	var tripcodeSecure bool
+	form.Author, tripcode, tripcodeSecure, err = parseTripFromName(form.Author, a.cfg.SiteSecret)
+	if err != nil {
+		return err
+	}
 	var file savedFile
 	if form.HasFile {
 		file, err = a.saveFile(form.File, form.MimeType, base)
@@ -388,12 +397,14 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 	_, err = a.db.Exec(`
 	INSERT INTO posts
     	(reply_to, posted_at, bumped_at, author, email, subject, body,
+    	 tripcode, tripcode_secure,
     	 file_path, thumbnail_path, thumbnail_width, thumbnail_height, file_size, mime_type,
 		 width, height, replay_path, replay_duration)
 	VALUES
-    	(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    	(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		reply_to, postedAt, postedAt,
 		form.Author, form.Email, form.Subject, form.Body,
+		tripcode, tripcodeSecure,
 		file.Path, file.ThumbPath,
 		file.ThumbWidth, file.ThumbHeight, file.FileSize, form.MimeType,
 		file.Width, file.Height, replayPath, form.ReplayDuration,
@@ -408,6 +419,18 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 		}
 	}
 	return nil
+}
+
+func parseTripFromName(name, siteSecret string) (cleanName, trip string, secure bool, err error) {
+	if before, after, found := strings.Cut(name, "##"); found {
+		t, err := secureTrip(after, siteSecret)
+		return before, t, true, err
+	}
+	if before, after, found := strings.Cut(name, "#"); found {
+		t, err := regularTrip(after)
+		return before, t, false, err
+	}
+	return name, "", false, nil
 }
 
 func (p Post) Kind() string {

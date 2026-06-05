@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS posts (
     email     TEXT    NOT NULL DEFAULT '',
     subject   TEXT    NOT NULL DEFAULT '',
     body      TEXT    NOT NULL DEFAULT '',
+    tripcode TEXT NOT NULL DEFAULT '',
+    tripcode_secure BOOLEAN NOT NULL DEFAULT 0,
     file_path      TEXT NOT NULL DEFAULT '',
     thumbnail_path TEXT NOT NULL DEFAULT '',
     replay_path TEXT NOT NULL DEFAULT '',

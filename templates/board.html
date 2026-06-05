@@ -64,7 +64,7 @@
                 {{range .Posts}}
                 {{/* <input type="checkbox" name="{{.ID}}" value="delete"> */}}
                 <span class="post-subject">{{.Subject}}</span>
-                {{ T "post.name_label" }} <span class="post-author">{{if .Email}}<a href="mailto:{{.Email}}">{{.Author}}</a>{{else}}{{.Author}}{{end}}</span>
+                {{ T "post.name_label" }} <span class="post-author">{{if .Email}}<a href="mailto:{{.Email}}">{{.Author}}</a>{{else}}{{.Author}}{{end}}</span>{{if .Tripcode}} <b class="trip">{{if .TripcodeSecure}}◆◆{{else}}◆{{end}}{{.Tripcode}}</b>{{end}}
                 {{formatTime .PostedAt}} No.{{.ID}} &nbsp;
                 [<a href="/thread/{{.ID}}">{{ T "post.reply" }}</a>]
                 {{if and $.OekakiEnabled .ReplayPath}}
@@ -81,7 +81,7 @@
                         <td class="reply-cell">
                             {{/* <input type="checkbox" name="{{.ID}}" value="delete"> */}}
                             <span class="post-subject">{{.Subject}}</span>
-                            {{ T "post.name_label" }} <span class="post-author">{{if .Email}}<a href="mailto:{{.Email}}">{{.Author}}</a>{{else}}{{.Author}}{{end}}</span>
+                            {{ T "post.name_label" }} <span class="post-author">{{if .Email}}<a href="mailto:{{.Email}}">{{.Author}}</a>{{else}}{{.Author}}{{end}}</span>{{if .Tripcode}} <b class="trip">{{if .TripcodeSecure}}◆◆{{else}}◆{{end}}{{.Tripcode}}</b>{{end}}
                             {{formatTime .PostedAt}} No.{{.ID}} &nbsp;
                             {{if and $.OekakiEnabled .ReplayPath}}
                             [<a href="/replay/{{.ID}}">{{ T "post.watch_drawing" }}</a>]
