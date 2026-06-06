@@ -6,3 +6,4 @@ futaba.php
 upload/
 .devcontainer/devcontainer-lock.json
 testfiles/
+.playwright-cli/
