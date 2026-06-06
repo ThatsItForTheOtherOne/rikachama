@@ -165,7 +165,7 @@ func main() {
 			return
 		}
 		if total > 0 && page > maxPage(total) {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 		render(w, "board.html", app.newBoardPage(posts, page, total))
@@ -212,7 +212,7 @@ func main() {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusFound)
 	})
 	http.HandleFunc("GET /thread/{id}", func(w http.ResponseWriter, r *http.Request) {
 		idStr := r.PathValue("id")
@@ -287,7 +287,7 @@ func main() {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-		http.Redirect(w, r, "/thread/"+strconv.Itoa(id), http.StatusSeeOther)
+		http.Redirect(w, r, "/thread/"+strconv.Itoa(id), http.StatusFound)
 
 	})
 	http.Handle("GET /admin", app.adminAuthMiddleware(func(w http.ResponseWriter, r *http.Request, admin adminInfo) {
@@ -321,7 +321,7 @@ func main() {
 				return
 			}
 		}
-		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin", http.StatusFound)
 	}))
 	http.Handle("POST /admin/delete", app.adminAuthMiddleware(func(w http.ResponseWriter, r *http.Request, admin adminInfo) {
 		err := r.ParseForm()
@@ -345,7 +345,7 @@ func main() {
 				return
 			}
 		}
-		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin", http.StatusFound)
 	}))
 	http.HandleFunc("GET /admin/login", func(w http.ResponseWriter, r *http.Request) {
 		render(w, "admin_login.html", AdminLoginPage{Config: app.cfg, Error: ""})
@@ -381,7 +381,7 @@ func main() {
 			SameSite: http.SameSiteStrictMode,
 			MaxAge:   int(ttl.Seconds()),
 		})
-		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin", http.StatusFound)
 	})
 
 	http.HandleFunc("POST /admin/logout", func(w http.ResponseWriter, r *http.Request) {
@@ -397,7 +397,7 @@ func main() {
 			SameSite: http.SameSiteStrictMode,
 			MaxAge:   -1,
 		})
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusFound)
 	})
 	http.Handle("GET /admin/password", app.adminAuthMiddleware(func(w http.ResponseWriter, r *http.Request, admin adminInfo) {
 		render(w, "admin_password.html", AdminPasswordPage{Config: app.cfg, Error: "", Success: false})
