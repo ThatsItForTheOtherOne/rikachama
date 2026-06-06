@@ -37,6 +37,7 @@ type Post struct {
 	MimeType                                       string
 	Replies                                        []Post
 	ReplayDuration                                 int
+	Sticky                                         bool
 }
 
 type tgkrHeader struct {
@@ -69,7 +70,7 @@ type parsedFields struct {
 const postsPerPage = 10
 
 const postColumns = `id, posted_at, author, email, subject, body, tripcode, tripcode_secure,
-    file_path, thumbnail_path, thumbnail_width, thumbnail_height, file_size, mime_type, width, height, replay_path, replay_duration`
+    file_path, thumbnail_path, thumbnail_width, thumbnail_height, file_size, mime_type, width, height, replay_path, replay_duration, sticky`
 
 const maxNameLen = 50
 const maxEmailLen = 100
@@ -109,7 +110,7 @@ func scanPost(s postScanner) (Post, error) {
 		&p.Subject, &p.Body, &p.Tripcode, &p.TripcodeSecure,
 		&p.FilePath, &p.ThumbnailPath,
 		&p.ThumbnailWidth, &p.ThumbnailHeight, &p.FileSize, &p.MimeType,
-		&p.Width, &p.Height, &p.ReplayPath, &p.ReplayDuration,
+		&p.Width, &p.Height, &p.ReplayPath, &p.ReplayDuration, &p.Sticky,
 	); err != nil {
 		return Post{}, err
 	}
@@ -127,7 +128,7 @@ func (a *App) getThreads(page int) ([]Post, int, error) {
 	SELECT `+postColumns+`
 	FROM posts
 	WHERE reply_to IS NULL
-	ORDER BY bumped_at DESC
+	ORDER BY sticky DESC, bumped_at DESC
 	LIMIT ?
 	OFFSET ?
 	`, postsPerPage, page*postsPerPage)
@@ -566,4 +567,12 @@ func (a *App) unlinkPostFiles(filePath, thumbPath, replayPath string) {
 func (a *App) saveReplay(replay []byte, base string) (string, error) {
 	replayPath := base + ".tgkr"
 	return replayPath, os.WriteFile(filepath.Join(a.cfg.UploadPath, replayPath), replay, 0644)
+}
+
+func (a *App) setPinned(postID int, pinned bool) error {
+	_, err := a.db.Exec(`UPDATE posts SET sticky = ? WHERE id = ?`, pinned, postID)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -18,42 +18,53 @@
                 </tr>
             </table>
         </p>
-        <form action="/admin/delete" method="POST">
-            <p>{{ T "admin.delete_instructions" }}</p>
-            <p>
-                <input type="submit" value="{{ T `admin.delete_button` }}">
-                <input type="reset" value="{{ T `admin.reset_button` }}">
-                [<input type="checkbox" name="onlyimgdel" value="on"> {{ T "admin.only_file" }}]
-            </p>
-            <table class="admin-table" border="1" cellspacing="0">
-                <tr class="admin-table-header">
-                    <th>{{ T "admin.col.delete" }}</th>
-                    <th>{{ T "admin.col.no" }}</th>
-                    <th>{{ T "admin.col.posted" }}</th>
-                    <th>{{ T "admin.col.subject" }}</th>
-                    <th>{{ T "admin.col.author" }}</th>
-                    <th>{{ T "admin.col.comment" }}</th>
-                    <th>{{ T "admin.col.file" }}</th>
-                    <th>{{ T "admin.col.type" }}</th>
-                </tr>
-                {{range .Posts}}
-                <tr>
-                    <td><input type="checkbox" name="delete" value="{{.ID}}"></td>
-                    <td><a href="/thread/{{.ID}}">{{.ID}}</a></td>
-                    <td><small>{{formatTime .PostedAt}}</small></td>
-                    <td>{{.Subject}}</td>
-                    <td><b>{{.Author}}</b></td>
-                    <td><small>{{.Body}}</small></td>
-                    <td>{{if .FileSize}}{{.FileSize}} B{{end}}</td>
-                    <td><small>{{.MimeType}}</small></td>
-                </tr>
-                {{end}}
-            </table>
-            <p>
-                <input type="submit" value="{{ T `admin.delete_button` }}">
-                <input type="reset" value="{{ T `admin.reset_button` }}">
-            </p>
-        </form>
+        <form id="del-form" action="/admin/delete" method="POST"></form>
+        <form id="pin-form" action="/admin/pin" method="POST"></form>
+        <p>{{ T "admin.delete_instructions" }}</p>
+        <p>
+            <input type="submit" form="del-form" value="{{ T `admin.delete_button` }}">
+            <input type="reset" form="del-form" value="{{ T `admin.reset_button` }}">
+            [<input type="checkbox" form="del-form" name="onlyimgdel" value="on"> {{ T "admin.only_file" }}]
+            &nbsp;|&nbsp;
+            <input type="submit" form="pin-form" value="{{ T `admin.pin_button` }}">
+            <input type="reset" form="pin-form" value="{{ T `admin.reset_button` }}">
+        </p>
+        <table class="admin-table" border="1" cellspacing="0">
+            <tr class="admin-table-header">
+                <th>{{ T "admin.col.delete" }}</th>
+                <th>{{ T "admin.col.pin" }}</th>
+                <th>{{ T "admin.col.no" }}</th>
+                <th>{{ T "admin.col.posted" }}</th>
+                <th>{{ T "admin.col.subject" }}</th>
+                <th>{{ T "admin.col.author" }}</th>
+                <th>{{ T "admin.col.comment" }}</th>
+                <th>{{ T "admin.col.file" }}</th>
+                <th>{{ T "admin.col.type" }}</th>
+            </tr>
+            {{range .Posts}}
+            <tr>
+                <td><input type="checkbox" form="del-form" name="delete" value="{{.ID}}"></td>
+                <td>
+                    <input type="hidden" form="pin-form" name="displayed" value="{{.ID}}">
+                    <input type="checkbox" form="pin-form" name="pin" value="{{.ID}}"{{if .Sticky}} checked{{end}}>
+                </td>
+                <td><a href="/thread/{{.ID}}">{{.ID}}</a></td>
+                <td><small>{{formatTime .PostedAt}}</small></td>
+                <td>{{.Subject}}</td>
+                <td><b>{{.Author}}</b></td>
+                <td><small>{{.Body}}</small></td>
+                <td>{{if .FileSize}}{{.FileSize}} B{{end}}</td>
+                <td><small>{{.MimeType}}</small></td>
+            </tr>
+            {{end}}
+        </table>
+        <p>
+            <input type="submit" form="del-form" value="{{ T `admin.delete_button` }}">
+            <input type="reset" form="del-form" value="{{ T `admin.reset_button` }}">
+            &nbsp;|&nbsp;
+            <input type="submit" form="pin-form" value="{{ T `admin.pin_button` }}">
+            <input type="reset" form="pin-form" value="{{ T `admin.reset_button` }}">
+        </p>
         <p>[ {{ T "admin.total_data" }}: <b>{{.TotalFileBytes}}</b> bytes ]</p>
         <p class="footer">
             - <a href="http://php.s3.to" target="_top">GazouBBS</a> + <a href="http://www.2chan.net/" target="_top">futaba</a> + rikachama -

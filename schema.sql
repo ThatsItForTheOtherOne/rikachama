@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS posts (
     mime_type TEXT    NOT NULL DEFAULT '',
     bumped_at INTEGER NOT NULL DEFAULT 0,
     width INTEGER NOT NULL DEFAULT 0,
-    height INTEGER NOT NULL DEFAULT 0
+    height INTEGER NOT NULL DEFAULT 0,
+    sticky BOOLEAN NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_reply_to ON posts(reply_to);

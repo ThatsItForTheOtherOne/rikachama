@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"time"
 
@@ -296,6 +297,31 @@ func main() {
 			return
 		}
 		render(w, "admin_panel.html", AdminPage{Config: app.cfg, Posts: posts, TotalFileBytes: filesize})
+	}))
+	http.Handle("POST /admin/pin", app.adminAuthMiddleware(func(w http.ResponseWriter, r *http.Request, admin adminInfo) {
+		err := r.ParseForm()
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		displayed := r.PostForm["displayed"]
+		ids := r.PostForm["pin"]
+		for _, value := range displayed {
+			sticky := false
+			if slices.Contains(ids, value) {
+				sticky = true
+			}
+			id, err := strconv.Atoi(value)
+			if err != nil {
+				continue
+			}
+			err = app.setPinned(id, sticky)
+			if err != nil {
+				http.Error(w, "db error", http.StatusInternalServerError)
+				return
+			}
+		}
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 	}))
 	http.Handle("POST /admin/delete", app.adminAuthMiddleware(func(w http.ResponseWriter, r *http.Request, admin adminInfo) {
 		err := r.ParseForm()
