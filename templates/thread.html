@@ -18,7 +18,7 @@
                     <th>{{ T "thread.reply_mode" }}</th>
                 </tr>
             </table>
-            <div class="center">
+            <center>
                 <form class="post-form" action="/thread/{{.Thread.ID}}" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="MAX_FILE_SIZE" value="{{.MaxBodySize}}">
                     <table class="post-form-table">
@@ -64,7 +64,7 @@
                         </tr>
                     </table>
                 </form>
-            </div>
+            </center>
             <hr>
             {{/* <form action="/" method="POST"> -- delete not implemented */}}
                 {{with .Thread}}
@@ -95,6 +95,7 @@
                             <br>
                             {{template "media" .}}
                             <blockquote class="post-body">{{formatBody .Body}}</blockquote>
+                            <br clear="all">
                         </td>
                     </tr>
                 </table>

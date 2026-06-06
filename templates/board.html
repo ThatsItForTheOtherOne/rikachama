@@ -12,7 +12,7 @@
         <p class="board-header">
             <span class="board-title">{{.Title}}</span>
             <hr class="title-hr">
-            <div class="center">
+            <center>
                 <form class="post-form" action="/" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="MAX_FILE_SIZE" value="{{.MaxBodySize}}">
                     <table class="post-form-table">
@@ -58,7 +58,7 @@
                         </tr>
                     </table>
                 </form>
-            </div>
+            </center>
             <hr>
             {{/* <form action="/" method="POST"> -- delete not implemented */}}
                 {{range .Posts}}
@@ -90,6 +90,7 @@
                             <br>
                             {{template "media" .}}
                             <blockquote class="post-body">{{formatBody .Body}}</blockquote>
+                            <br clear="all">
                         </td>
                     </tr>
                 </table>
