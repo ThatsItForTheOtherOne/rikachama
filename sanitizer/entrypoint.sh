@@ -22,7 +22,7 @@ case "$1" in
         out=$(mktemp /tmp/out.XXXXXX)
         trap 'rm -f "$tmp" "$out"' EXIT
         cat > "$tmp"
-        ffmpeg -i "$tmp" -c:v libx264 -pix_fmt yuv420p -c:a aac -movflags +faststart -f mp4 -y "$out"
+        ffmpeg -i "$tmp" -c:v libx264  -preset veryfast -crf 23 -pix_fmt yuv420p -c:a aac -movflags +faststart -f mp4 -y "$out"
         cat "$out"
         ;;
     video-thumb)
