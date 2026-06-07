@@ -99,6 +99,11 @@ a:hover { color: #DD0000; }
 .quote {
     color: #789922;
 }
+.quotelink {
+    color: #DD0000;
+}
+.quotelink:visited { color: #DD0000; }
+.quotelink:hover { color: #FF6600; }
 
 .inline-form {
     display: inline;

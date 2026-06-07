@@ -480,7 +480,26 @@ func main() {
 			ReplayURL: "/upload/" + replayPath,
 		})
 	})
+	http.HandleFunc("GET /post/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}
 
+		var threadOf int
+		err = app.db.QueryRow(`SELECT COALESCE(reply_to, id) FROM posts WHERE id = ?`, id).Scan(&threadOf)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+		http.Redirect(w, r, fmt.Sprintf("/thread/%d#p%d", threadOf, id), http.StatusFound)
+	})
 	if app.dev {
 		log.Println("Server running in developer mode! Do not use in production!!!")
 	}

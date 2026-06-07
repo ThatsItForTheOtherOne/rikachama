@@ -120,6 +120,7 @@ func formatTime(t time.Time) string {
 
 func formatBody(s string) template.HTML {
 	s = html.EscapeString(s)
+	s = quoteLinksToPostLinks(s)
 	s = newlinesToBreaks(s)
 	s = colorizeQuotes(s)
 	return template.HTML(s)
@@ -127,6 +128,11 @@ func formatBody(s string) template.HTML {
 
 func newlinesToBreaks(s string) string {
 	return strings.ReplaceAll(s, "\n", "<br>")
+}
+
+func quoteLinksToPostLinks(s string) string {
+	var postLinkRe = regexp.MustCompile(`&gt;&gt;(\d+)`)
+	return postLinkRe.ReplaceAllString(s, `<a href="/post/$1" class="quotelink">&gt;&gt;$1</a>`)
 }
 
 func colorizeQuotes(s string) string {

@@ -144,10 +144,25 @@
         });
     }
 
+    // a.quotelink: server renders these as /post/N which redirects to the
+    // target's thread. If the target post is on the current page, rewrite
+    // the href to an in-page anchor so the click is instant (no redirect).
+    function enhancePostLinks() {
+        var re = /\/post\/(\d+)$/;
+        document.querySelectorAll("a.quotelink").forEach(function (link) {
+            var m = link.getAttribute("href").match(re);
+            if (!m) return;
+            if (document.getElementById("p" + m[1])) {
+                link.setAttribute("href", "#p" + m[1]);
+            }
+        });
+    }
+
     function init() {
         enhanceImages();
         enhanceFlash();
         enhanceVideos();
+        enhancePostLinks();
     }
 
     if (document.readyState === "loading") {
