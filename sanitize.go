@@ -42,7 +42,6 @@ var mimeSpecs = map[string]mimeSpec{
 		thumbnailExt:     ".png",
 		displayName:      "BMP",
 	},
-
 	"image/gif": {
 		sanitizeCommand:  "image-gif",
 		thumbnailCommand: "image-png-thumb",
