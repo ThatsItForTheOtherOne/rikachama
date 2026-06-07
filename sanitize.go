@@ -45,7 +45,7 @@ var mimeSpecs = map[string]mimeSpec{
 
 	"image/gif": {
 		sanitizeCommand:  "image-gif",
-		thumbnailCommand: "image-thumb",
+		thumbnailCommand: "image-png-thumb",
 		outputExt:        ".gif",
 		thumbnailExt:     ".jpg",
 		displayName:      "GIF",
