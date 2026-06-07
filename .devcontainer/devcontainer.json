@@ -5,12 +5,15 @@
     },
     "features": {
         "ghcr.io/devcontainers/features/node:1": {},
-        "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+        "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
+        "ghcr.io/itsmechlark/features/postgresql:1": {
+            "version": "17"
+        }
     },
     "runArgs": ["--privileged", "--memory=8g", "--memory-swap=8g"],
     "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
     "workspaceFolder": "/workspace",
-    "forwardPorts": [3200],
+    "forwardPorts": [3200, 5432],
     "mounts": [
         "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
         "source=claude-code-history-${devcontainerId},target=/commandhistory,type=volume",
@@ -32,5 +35,5 @@
             }
         }
     },
-    "postCreateCommand": "go mod download && npm install -g @playwright/cli@latest && playwright-cli install-browser chrome-for-testing"
+    "postCreateCommand": "go mod download && npm install -g @playwright/cli@latest && playwright-cli install-browser chrome-for-testing && sudo -u postgres createdb rikachama 2>/dev/null || true"
 }
