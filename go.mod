@@ -1,4 +1,4 @@
-module example.com/m/v2
+module github.com/ThatsItForTheOtherOne/rikachama
 
 go 1.25.6
 
