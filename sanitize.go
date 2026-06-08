@@ -165,10 +165,11 @@ func buildImage(sanitizerImageBase string) (string, error) {
 	if needToBuild {
 		log.Printf("Starting container build, name: %s", sanitizerImage)
 		cmd = exec.Command("podman", "build", "-t", sanitizerImage, dir)
+		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err = cmd.Run()
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("podman build failed: %w", err)
 		}
 		log.Printf("Container build finished!")
 	} else {
@@ -178,36 +179,47 @@ func buildImage(sanitizerImageBase string) (string, error) {
 }
 
 func (a *App) podmanRun(args ...string) *exec.Cmd {
-	base := []string{
+	base := append([]string{}, a.cfg.PodmanGlobalFlags...)
+	base = append(base,
 		"run", "--rm", "-i",
 		"--runtime=runsc",
 		"--network=none",
 		"--pull=never",
 		"--cap-drop=all",
 		"--security-opt=no-new-privileges",
+		"--security-opt=label=disable", // runsc doesn't support SELinux labels, necessary for systems with SELinux
 		"--read-only",
 		"--tmpfs", "/tmp:rw,noexec,nosuid,size=256m",
 		"--pids-limit=100",
 		"--memory=512m",
 		a.sanitizerImage,
-	}
+	)
 	return exec.Command("podman", append(base, args...)...)
 }
 
 func (a *App) process(input []byte, fileCmd, thumbCmd string) ([]byte, []byte, error) {
 	var fileOut, thumbOut bytes.Buffer
+	var fileErr, thumbErr bytes.Buffer
 	g := new(errgroup.Group)
 
 	g.Go(func() error {
 		fc := a.podmanRun(fileCmd)
-		fc.Stdin, fc.Stdout, fc.Stderr = bytes.NewReader(input), &fileOut, os.Stderr
-		return fc.Run()
+		fc.Stdin, fc.Stdout, fc.Stderr = bytes.NewReader(input), &fileOut, &fileErr
+		err := fc.Run()
+		if err != nil {
+			return fmt.Errorf("%s: %w (stderr: %s)", fileCmd, err, fileErr.String())
+		}
+		return nil
 	})
 
 	g.Go(func() error {
 		tc := a.podmanRun(thumbCmd)
-		tc.Stdin, tc.Stdout, tc.Stderr = bytes.NewReader(input), &thumbOut, os.Stderr
-		return tc.Run()
+		tc.Stdin, tc.Stdout, tc.Stderr = bytes.NewReader(input), &thumbOut, &thumbErr
+		err := tc.Run()
+		if err != nil {
+			return fmt.Errorf("%s: %w (stderr: %s)", thumbCmd, err, thumbErr.String())
+		}
+		return nil
 	})
 
 	if err := g.Wait(); err != nil {
