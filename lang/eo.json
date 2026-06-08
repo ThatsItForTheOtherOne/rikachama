@@ -11,6 +11,8 @@
     "form.attach_note": "Permesitaj dosierspecoj estas: %s.",
     "form.max_size_note": "Maksimuma afiŝogrando estas %d KB. sage subtenata.",
     "form.image_size_note": "Bildoj pli grandaj ol %d×%d pikseloj estos miniaturo-igitaj.",
+    "form.delete_key": "Forig-pasvorto:",
+    "form.delete_button": "Forigi",
     "post.reply": "Respondi",
     "post.anonymous": "Anonima",
     "post.image_title": "Bildo:",

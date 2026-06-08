@@ -168,3 +168,47 @@ func TestRegularTripIgnoresSecret(t *testing.T) {
 		t.Errorf("regular trip changed with secret: %q vs %q", a, b)
 	}
 }
+
+func TestHashDeletePasswordDeterministic(t *testing.T) {
+	a, err := hashDeletePassword("hunter2", "secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := hashDeletePassword("hunter2", "secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a != b {
+		t.Errorf("expected deterministic hash, got %q and %q", a, b)
+	}
+}
+
+func TestHashDeletePasswordDiffersByPassword(t *testing.T) {
+	a, _ := hashDeletePassword("hunter2", "secret")
+	b, _ := hashDeletePassword("hunter3", "secret")
+	if a == b {
+		t.Errorf("expected different hashes for different passwords")
+	}
+}
+
+func TestHashDeletePasswordDiffersBySecret(t *testing.T) {
+	a, _ := hashDeletePassword("hunter2", "secret1")
+	b, _ := hashDeletePassword("hunter2", "secret2")
+	if a == b {
+		t.Errorf("expected different hashes for different secrets")
+	}
+}
+
+func TestHashDeletePasswordEmptyPassword(t *testing.T) {
+	_, err := hashDeletePassword("", "secret")
+	if !errors.Is(err, ErrInvalidCredentials) {
+		t.Errorf("expected ErrInvalidCredentials, got %v", err)
+	}
+}
+
+func TestHashDeletePasswordEmptySecret(t *testing.T) {
+	_, err := hashDeletePassword("hunter2", "")
+	if !errors.Is(err, ErrMissingSiteSecret) {
+		t.Errorf("expected ErrMissingSiteSecret, got %v", err)
+	}
+}

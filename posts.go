@@ -3,7 +3,10 @@ package main
 import (
 	"bytes"
 	"compress/flate"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	_ "image/gif"
@@ -38,6 +41,7 @@ type Post struct {
 	Replies                                        []Post
 	ReplayDuration                                 int
 	Sticky                                         bool
+	DeletePasswordHash                             string
 }
 
 type tgkrHeader struct {
@@ -60,22 +64,24 @@ type form struct {
 	Replay         []byte
 	Sage           bool
 	ReplayDuration int
+	DeletePassword string
 }
 
 type parsedFields struct {
-	Author, Email, Subject, Body string
-	Duration                     int
+	Author, Email, Subject, Body, DeletePassword string
+	Duration                                     int
 }
 
 const postsPerPage = 10
 
 const postColumns = `id, posted_at, author, email, subject, body, tripcode, tripcode_secure,
-    file_path, thumbnail_path, thumbnail_width, thumbnail_height, file_size, mime_type, width, height, replay_path, replay_duration, sticky`
+    file_path, thumbnail_path, thumbnail_width, thumbnail_height, file_size, mime_type, width, height, replay_path, replay_duration, sticky, delete_password_hash`
 
 const maxNameLen = 50
 const maxEmailLen = 100
 const maxSubjectLen = 100
 const maxBodyLen = 4000
+const maxDeletePasswordLen = 50
 const maxPdfSize = 5 * 1024 * 1024 // 5MB, PDFs use more resources and need to be capped separately
 
 const tgkrMagic = "TGK"
@@ -111,6 +117,7 @@ func scanPost(s postScanner) (Post, error) {
 		&p.FilePath, &p.ThumbnailPath,
 		&p.ThumbnailWidth, &p.ThumbnailHeight, &p.FileSize, &p.MimeType,
 		&p.Width, &p.Height, &p.ReplayPath, &p.ReplayDuration, &p.Sticky,
+		&p.DeletePasswordHash,
 	); err != nil {
 		return Post{}, err
 	}
@@ -277,6 +284,7 @@ func (a *App) validateAndHandleForm(r *http.Request) (form, error) {
 		Replay:         replayFileBytes,
 		Sage:           sage,
 		ReplayDuration: fields.Duration,
+		DeletePassword: fields.DeletePassword,
 	}, nil
 }
 
@@ -314,7 +322,11 @@ func parseAndValidateFields(r *http.Request) (parsedFields, error) {
 		}
 		duration = d
 	}
-	return parsedFields{Author: author, Subject: subject, Email: email, Body: body, Duration: duration}, nil
+	deletePassword := r.FormValue("pwd")
+	if utf8.RuneCountInString(deletePassword) > maxDeletePasswordLen {
+		return parsedFields{}, ErrTooLong
+	}
+	return parsedFields{Author: author, Subject: subject, Email: email, Body: body, Duration: duration, DeletePassword: deletePassword}, nil
 }
 
 func validateReplay(data []byte) error {
@@ -394,21 +406,28 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 			return err
 		}
 	}
+	var deletePasswordHash string
+	if form.DeletePassword != "" {
+		deletePasswordHash, err = hashDeletePassword(form.DeletePassword, a.cfg.SiteSecret)
+		if err != nil {
+			return err
+		}
+	}
 	postedAt := time.Now().Unix()
 	_, err = a.db.Exec(`
 	INSERT INTO posts
     	(reply_to, posted_at, bumped_at, author, email, subject, body,
     	 tripcode, tripcode_secure,
     	 file_path, thumbnail_path, thumbnail_width, thumbnail_height, file_size, mime_type,
-		 width, height, replay_path, replay_duration)
+		 width, height, replay_path, replay_duration, delete_password_hash)
 	VALUES
-    	(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    	(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		reply_to, postedAt, postedAt,
 		form.Author, form.Email, form.Subject, form.Body,
 		tripcode, tripcodeSecure,
 		file.Path, file.ThumbPath,
 		file.ThumbWidth, file.ThumbHeight, file.FileSize, form.MimeType,
-		file.Width, file.Height, replayPath, form.ReplayDuration,
+		file.Width, file.Height, replayPath, form.ReplayDuration, deletePasswordHash,
 	)
 	if err != nil {
 		return err
@@ -420,6 +439,18 @@ func (a *App) handlePost(r *http.Request, threadID int) error {
 		}
 	}
 	return nil
+}
+
+func hashDeletePassword(pwd, siteSecret string) (string, error) {
+	if siteSecret == "" {
+		return "", ErrMissingSiteSecret
+	}
+	if pwd == "" {
+		return "", ErrInvalidCredentials
+	}
+	mac := hmac.New(sha256.New, []byte(siteSecret))
+	mac.Write([]byte(pwd))
+	return hex.EncodeToString(mac.Sum(nil)), nil
 }
 
 func parseTripFromName(name, siteSecret string) (cleanName, trip string, secure bool, err error) {

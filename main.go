@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/subtle"
 	"database/sql"
 	_ "embed"
 	"encoding/json"
@@ -155,7 +156,7 @@ func main() {
 		idStr := r.PathValue("page")
 		page, err := strconv.Atoi(idStr)
 		if err != nil {
-			http.Error(w, "Not Found", http.StatusNotFound)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 		posts, total, err := app.getThreads(page)
@@ -223,7 +224,7 @@ func main() {
 		}
 		thread, err := app.getThread(id)
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "Not Found", http.StatusNotFound)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
 			log.Println(err)
 			return
 		} else if err != nil {
@@ -466,7 +467,7 @@ func main() {
 		var replayPath string
 		err = app.db.QueryRow("SELECT replay_path FROM posts WHERE id = ?", id).Scan(&replayPath)
 		if errors.Is(err, sql.ErrNoRows) || replayPath == "" {
-			http.Error(w, "Not Found", http.StatusNotFound)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 		if err != nil {
@@ -490,7 +491,7 @@ func main() {
 		var threadOf int
 		err = app.db.QueryRow(`SELECT COALESCE(reply_to, id) FROM posts WHERE id = ?`, id).Scan(&threadOf)
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "Not Found", http.StatusNotFound)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 		if err != nil {
@@ -499,6 +500,53 @@ func main() {
 			return
 		}
 		http.Redirect(w, r, fmt.Sprintf("/thread/%d#p%d", threadOf, id), http.StatusFound)
+	})
+	http.HandleFunc("POST /delete", func(w http.ResponseWriter, r *http.Request) {
+		err := r.ParseForm()
+		if err != nil {
+			http.Error(w, "Bad Form", http.StatusBadRequest)
+			return
+		}
+		pwd := r.FormValue("pwd")
+		var ids []int
+		for key, vals := range r.PostForm {
+			if len(vals) == 1 && vals[0] == "delete" {
+				if id, err := strconv.Atoi(key); err == nil {
+					ids = append(ids, id)
+				}
+			}
+		}
+		expectedHash, err := hashDeletePassword(pwd, app.cfg.SiteSecret)
+		if errors.Is(err, ErrInvalidCredentials) {
+			http.Error(w, "Deletion password cannot be empty", http.StatusUnprocessableEntity)
+			return
+		}
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		for _, id := range ids {
+			var storedHash, filePath, thumbPath, replayPath string
+			err := app.db.QueryRow(
+				`SELECT delete_password_hash, file_path, thumbnail_path, replay_path FROM posts WHERE id = ?`,
+				id,
+			).Scan(&storedHash, &filePath, &thumbPath, &replayPath)
+			if err != nil {
+				continue
+			}
+			if storedHash == "" {
+				continue
+			}
+			if subtle.ConstantTimeCompare([]byte(storedHash), []byte(expectedHash)) != 1 {
+				continue
+			}
+			err = app.deletePost(id, false)
+			if err != nil {
+				log.Printf("delete post %d failed: %v", id, err)
+			}
+		}
+		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 	})
 	if app.dev {
 		log.Println("Server running in developer mode! Do not use in production!!!")

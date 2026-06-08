@@ -19,11 +19,12 @@ CREATE TABLE IF NOT EXISTS posts (
     bumped_at INTEGER NOT NULL DEFAULT 0,
     width INTEGER NOT NULL DEFAULT 0,
     height INTEGER NOT NULL DEFAULT 0,
-    sticky BOOLEAN NOT NULL DEFAULT 0
+    sticky BOOLEAN NOT NULL DEFAULT 0,
+    delete_password_hash TEXT NOT NULL DEFAULT ''
 );
 
 CREATE INDEX IF NOT EXISTS idx_reply_to ON posts(reply_to);
-CREATE INDEX IF NOT EXISTS idx_reply_to ON posts(reply_to, bumped_at);
+CREATE INDEX IF NOT EXISTS idx_reply_to_bumped ON posts(reply_to, bumped_at);
 
 CREATE TABLE IF NOT EXISTS admins (
     id INTEGER PRIMARY KEY,

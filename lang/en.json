@@ -12,6 +12,8 @@
     "form.attach_note": "Allowed file types are: %s.",
     "form.max_size_note": "Maximum post size is %d KB. sage supported.",
     "form.image_size_note": "Images larger than %d×%d pixels will be thumbnailed.",
+    "form.delete_key": "Delete P.W:",
+    "form.delete_button": "Delete",
 
     "post.name_label": "Name",
     "post.reply": "Reply",
