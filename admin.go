@@ -33,7 +33,7 @@ type adminInfo struct {
 
 type adminHandler func(w http.ResponseWriter, r *http.Request, admin adminInfo)
 
-func (a *App) makeAdmin(username string) error {
+func makeAdmin(db *sql.DB, username string) error {
 	fmt.Print("Password: ")
 	pw, err := term.ReadPassword(int(os.Stdin.Fd()))
 	fmt.Println()
@@ -47,7 +47,7 @@ func (a *App) makeAdmin(username string) error {
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Exec(`INSERT INTO admins(username, password_hash, created_at) VALUES (?, ?, ?)`,
+	_, err = db.Exec(`INSERT INTO admins(username, password_hash, created_at) VALUES (?, ?, ?)`,
 		username, hash, time.Now().Unix())
 	return err
 }

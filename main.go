@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -37,6 +38,7 @@ type Config struct {
 	UploadPath         string        `json:"upload_path"`
 	OekakiEnabled      bool          `json:"oekaki_enabled"`
 	SiteSecret         string        `json:"site_secret"`
+	PodmanGlobalFlags  []string      `json:"podman_global_flags"` // applied before "run"
 }
 
 type App struct {
@@ -70,6 +72,9 @@ func main() {
 	if err := json.NewDecoder(f).Decode(&cfg); err != nil {
 		log.Fatalf("failed to parse config: %v", err)
 	}
+	if cfg.SiteSecret == "" || strings.HasPrefix(cfg.SiteSecret, "CHANGE_ME") {
+		log.Fatal("config: site_secret must be set to a unique random value. Generate one with: openssl rand -hex 32")
+	}
 	u, err := url.Parse(cfg.Home)
 	if err != nil || u.Scheme == "" || u.Host == "" {
 		log.Fatalf("invalid home URL %q: must be an absolute http(s) URL", cfg.Home)
@@ -102,10 +107,6 @@ func main() {
 		log.Fatalf("i18n: %v", err)
 	}
 	messages = m
-	sanitizerImage, err := buildImage(cfg.SanitizerImageBase)
-	if err != nil {
-		log.Fatalf("failed to build sanitizer image: %v", err)
-	}
 	db, err := sql.Open("sqlite", cfg.Database+"?_pragma=foreign_keys(1)")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
@@ -131,15 +132,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to clear stale sessions: %v", err)
 	}
-	app := &App{db: db, cfg: cfg, dev: *devMode, sanitizerImage: sanitizerImage}
 	if *createAdmin != "" {
-		err := app.makeAdmin(*createAdmin)
+		err := makeAdmin(db, *createAdmin)
 		if err != nil {
 			log.Fatalf("Failed to create admin account: %v", err)
 		}
 		log.Printf("admin %q created\n", *createAdmin)
 		return
 	}
+	sanitizerImage, err := buildImage(cfg.SanitizerImageBase)
+	if err != nil {
+		log.Fatalf("failed to build sanitizer image: %v", err)
+	}
+	app := &App{db: db, cfg: cfg, dev: *devMode, sanitizerImage: sanitizerImage}
 	http.Handle("/static/", http.FileServerFS(files))
 	http.Handle("/upload/", http.StripPrefix("/upload/", http.FileServer(http.Dir(cfg.UploadPath))))
 
