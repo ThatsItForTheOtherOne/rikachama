@@ -1,0 +1,15 @@
+{
+    "title": "Random",
+    "home": "http://localhost:3200",
+    "max_kb": 20000,
+    "max_replay_kb": 20000,
+    "max_w": 250,
+    "max_h": 250,
+    "sanitizer_image_base": "rikachama-sanitizer",
+    "lang": "en",
+    "database": "./rikachama.db",
+    "upload_path": "./upload",
+    "oekaki_enabled": false,
+    "site_secret": "CHANGE_ME_RUN_openssl_rand_hex_32",
+    "podman_global_flags": ["--runtime-flag=ignore-cgroups"]
+}
