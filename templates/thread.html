@@ -88,7 +88,7 @@
                 <table class="reply-table">
                     <tr>
                         <td class="reply-indent">&gt;&gt;</td>
-                        <td class="reply-cell" id="p{{.ID}}">
+                        <td class="reply-cell{{if .FilePath}} reply-cell-img{{end}}" id="p{{.ID}}">
                             <input type="checkbox" name="{{.ID}}" value="delete">
                             <span class="post-subject">{{.Subject}}</span>
                             {{ T "post.name_label" }} <span class="post-author">{{if .Email}}<a href="mailto:{{.Email}}">{{.Author}}</a>{{else}}{{.Author}}{{end}}</span>{{if .Tripcode}} <b class="trip">{{if .TripcodeSecure}}◆◆{{else}}◆{{end}}{{.Tripcode}}</b>{{end}}

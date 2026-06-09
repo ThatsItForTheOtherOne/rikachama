@@ -89,6 +89,7 @@ a:hover { color: #DD0000; }
     padding-bottom: 6px; /* NN6: blockquote bottom margin escapes the cell; use padding instead */
     min-width: 350px;
 }
+.reply-cell-img { min-width: 450px; }
 .reply-cell blockquote { margin-bottom: 0; }
 
 /* delete form and pagination */
