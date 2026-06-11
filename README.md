@@ -14,14 +14,14 @@ It uses podman/gVisor to securely handle files.
 | Browser | Released | Renders | Posts | Notes |
 |---------|----------|---------|-------|-------|
 | IE3 | Aug 1996 | partial | ❌ | Predates RFC 1867 multipart/form-data support |
-| HotJava 3.0 | 1999 | partial | ❌ | Sends multipart without boundary param; doesn't follow redirects |
+| HotJava 3.0 | 2004 | partial | ❌ | Sends multipart without boundary param; doesn't follow redirects |
 | Netscape Navigator 4.x | 1997-2002 | ⚠️ | ✅ | Text wraps incorrectly. No clean CSS workaround. Known bug w/ NN4.0. |
-| IE5.01 | Mar 2000 | ✅ | ✅ | Lowest version verified to work correctly |
-| IE5.5 | Jul 2000 | ✅ | ✅ | |
+| IE5.01 | Nov 1999 | ✅ | ✅ | Lowest version verified to work correctly |
+| IE5.5 | June 2000 | ✅ | ✅ | |
 | Netscape Navigator 6.2 | 2001 | ✅ | ✅ | |
 | Opera 5 | Dec 2000 | ✅ | ✅ | |
 | IE6 | Aug 2001 | ✅ | ✅ | |
-| K-Meleon 0.7 | Dec 2002 | ✅ | ✅ | |
+| K-Meleon 0.7 | Nov 2002 | ✅ | ✅ | |
 
 Modern browsers also work of course, but that's less interesting.
 
